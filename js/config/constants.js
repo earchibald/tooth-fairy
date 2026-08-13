@@ -13,13 +13,13 @@ export const DEFAULTS = Object.freeze({
 
   // Generators. rate is teeth/sec at level 0 multipliers. noise is per unit owned.
   UNITS: Object.freeze({
-    scout:    Object.freeze({ base: 50,       growth: 1.15, rate: 1,     noise: 1 }),
-    mouse:    Object.freeze({ base: 600,      growth: 1.14, rate: 10,    noise: 2 }),
+    scout:    Object.freeze({ base: 50,       growth: 1.15, rate: 1,     noise: 0.5 }),
+    mouse:    Object.freeze({ base: 600,      growth: 1.14, rate: 10,    noise: 1.5 }),
     sprite:   Object.freeze({ base: 2500,     growth: 1.05, rate: 40,    noise: 6,
                               lifeTicks: 450, afterglowFrac: 0.5 }),
     phantom:  Object.freeze({ base: 12000,    growth: 1.13, rate: 120,   noise: 0 }),
-    ferry:    Object.freeze({ base: 140000,   growth: 1.12, rate: 0,     noise: 0.5,
-                              lumpAmount: 12000, lumpEveryTicks: 60, noiseSpike: 10 }),
+    ferry:    Object.freeze({ base: 140000,   growth: 1.12, rate: 0,     noise: 0.3,
+                              lumpAmount: 12000, lumpEveryTicks: 60, noiseSpike: 6 }),
     pact:     Object.freeze({ base: 1.2e6,    growth: 1.15, rate: 6000,  noise: 0,
                               stirFactor: 0.96, netBonusPer: 0.01, netBonusCap: 3 }),
     ministry: Object.freeze({ base: 8e6,      growth: 1.15, rate: 60000, noise: 0 }),
@@ -43,24 +43,25 @@ export const DEFAULTS = Object.freeze({
     lucidcontract:Object.freeze({ cost: 2e6,   offlineRate: 1.0, offlineCapHours: 24 }),
   }),
 
-  LOOM: Object.freeze({ base: 1500, growth: 1.5, hushPerLevel: 12 }),
+  LOOM: Object.freeze({ base: 4000, growth: 1.5, hushPerLevel: 20 }),
 
   STIR: Object.freeze({
-    HUSH_BASE: 6,        // quiet capacity before the loom
-    RATE: 0.55,          // stir points/sec per point of excess noise
+    HUSH_BASE: 10,        // quiet capacity before the loom
+    RATE: 0.3,          // stir points/sec per point of excess noise
     FALL_RATE: 4,        // stir points/sec recovery when under hush
     WAKE_AT: 100,
-    WAKE_BELIEF_COST: 15,
-    WAKE_RESET: 40,
+    WAKE_BELIEF_COST: 10,
+    WAKE_RESET: 25,
     STUN_TICKS: 50,      // noisiest unit type stunned 10 s
-    FIRST_WAKE_AT: 70,   // the scripted flashlight wake fires early, provably
-    REVEAL_NOISE: 8,     // STIR meter appears when noise first reaches this
+    SETTLE_TICKS: 150,   // post-wake: the house pretends to sleep, stir frozen 30 s
+    FIRST_WAKE_AT: 55,   // the scripted flashlight wake fires early, provably
+    REVEAL_NOISE: 20,     // STIR meter appears when noise first reaches this
   }),
 
   BELIEF: Object.freeze({
     START: 50,
     DRIFT_PER_S: 0.01,   // toward 50
-    STREAK_PER_S: 0.02,  // gain while producing quietly
+    STREAK_PER_S: 0.05,  // gain while producing quietly
     STREAK_CAP: 75,
     NOTE_VALUE: 2,
   }),
@@ -76,16 +77,20 @@ export const DEFAULTS = Object.freeze({
   OUTLINE: Object.freeze({ MAX_SIZE: 64 }), // stage outline sets double up to this
 });
 
+// Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the
+// running game in place); unknown override keys are ignored, never invented.
 function merge(defaults, overrides) {
-  if (!overrides || typeof overrides !== 'object') return defaults;
-  const out = Array.isArray(defaults) ? defaults.slice() : { ...defaults };
-  for (const k of Object.keys(overrides)) {
-    if (!(k in defaults)) continue; // unknown keys are ignored, never invented
-    const d = defaults[k];
-    const o = overrides[k];
-    out[k] = (d && typeof d === 'object' && !Array.isArray(d)) ? merge(d, o) : o;
+  if (Array.isArray(defaults)) {
+    return Array.isArray(overrides) ? overrides.slice() : defaults.slice();
   }
-  return Object.freeze(out);
+  const src = overrides && typeof overrides === 'object' ? overrides : {};
+  const out = {};
+  for (const k of Object.keys(defaults)) {
+    const d = defaults[k];
+    if (d && typeof d === 'object') out[k] = merge(d, src[k]);
+    else out[k] = (k in src) ? src[k] : d;
+  }
+  return out;
 }
 
 export function buildConstants(overrides) {

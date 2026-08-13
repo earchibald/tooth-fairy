@@ -31,6 +31,7 @@ export function createState(seed = 1) {
     stir: 0,
     stirShown: false,
     wakes: 0,
+    settleTicks: 0,           // post-wake grace: the house re-settles, stir frozen
     stunUnit: null,
     stunTicks: 0,
 

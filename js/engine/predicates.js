@@ -14,8 +14,10 @@ export function pactNet(state, cfg) {
   return 1 + Math.min(cfg.UNITS.pact.netBonusCap - 1, bonus);
 }
 
+// Belief 50 is the neutral, half-believing world: ×1.0 exactly, so the
+// opening tap pays the printed 1 tooth. Range ×0.5 (belief 0) – ×1.5 (100).
 export function beliefMult(state) {
-  return 1 + state.belief / 100;
+  return 1 + (state.belief - 50) / 100;
 }
 
 export function tiptoeFactor(state, cfg) {

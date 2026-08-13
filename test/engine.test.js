@@ -48,8 +48,8 @@ test('tap respects the per-tick cap and awards tap power', () => {
   const s = freshPlaying();
   s.teeth = 0;
   for (let i = 0; i < 5; i++) dispatch(s, cfg, 'tap');
-  // babyfae doubles the base tap; cap is 2 landed taps per tick
-  assert.equal(s.teeth, 2 * cfg.TAP.BASE * 2 * (1 + s.belief / 100));
+  // babyfae doubles the base tap; cap is 2 landed taps per tick; belief 50 is ×1
+  assert.equal(s.teeth, 2 * cfg.TAP.BASE * 2);
   tick(s, cfg, noStory);
   dispatch(s, cfg, 'tap');
   assert.ok(s.taps === 3);

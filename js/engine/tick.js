@@ -95,18 +95,23 @@ export function tick(state, cfg, script, opts) {
     }
   }
 
-  // Stir and wakes.
+  // Stir and wakes. Stir never moves before its meter is revealed — a meter
+  // the player has not been shown must not be punishing them invisibly.
   const noise = noiseLevel(state, cfg) + ferrySpike;
   const hush = hushCapacity(state, cfg);
-  if (noise > hush) {
-    state.stir = Math.min(100, state.stir + (noise - hush) * cfg.STIR.RATE * dt);
-  } else {
-    state.stir = Math.max(0, state.stir - cfg.STIR.FALL_RATE * dt);
-  }
   if (!state.stirShown && noise >= cfg.STIR.REVEAL_NOISE) state.stirShown = true;
+  if (state.settleTicks > 0) {
+    state.settleTicks = Math.max(0, state.settleTicks - dtTicks);
+  } else if (state.stirShown) {
+    if (noise > hush) {
+      state.stir = Math.min(100, state.stir + (noise - hush) * cfg.STIR.RATE * dt);
+    } else {
+      state.stir = Math.max(0, state.stir - cfg.STIR.FALL_RATE * dt);
+    }
+  }
 
   const wakeAt = state.wakes === 0 ? cfg.STIR.FIRST_WAKE_AT : cfg.STIR.WAKE_AT;
-  if (!offline && state.stir >= wakeAt) {
+  if (!offline && state.stirShown && state.stir >= wakeAt) {
     let worst = null;
     let worstNoise = 0;
     for (const u of UNIT_IDS) {
@@ -116,6 +121,7 @@ export function tick(state, cfg, script, opts) {
     state.wakes++;
     state.belief = Math.max(0, state.belief - cfg.STIR.WAKE_BELIEF_COST);
     state.stir = cfg.STIR.WAKE_RESET;
+    state.settleTicks = cfg.STIR.SETTLE_TICKS;
     if (worst) { state.stunUnit = worst; state.stunTicks = cfg.STIR.STUN_TICKS; }
     state.sfx.push({ type: 'wake', unit: worst });
   }

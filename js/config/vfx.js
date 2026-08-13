@@ -44,16 +44,17 @@ export const VFX_DEFAULTS = Object.freeze({
   }),
 });
 
+// Deep-copies defaults into a live-mutable object; unknown keys ignored.
 function merge(defaults, overrides) {
-  if (!overrides || typeof overrides !== 'object') return defaults;
-  const out = { ...defaults };
-  for (const k of Object.keys(overrides)) {
-    if (!(k in defaults)) continue;
+  const src = overrides && typeof overrides === 'object' ? overrides : {};
+  if (Array.isArray(defaults)) return defaults.slice();
+  const out = {};
+  for (const k of Object.keys(defaults)) {
     const d = defaults[k];
-    const o = overrides[k];
-    out[k] = (d && typeof d === 'object') ? merge(d, o) : o;
+    if (d && typeof d === 'object') out[k] = merge(d, src[k]);
+    else out[k] = (k in src) ? src[k] : d;
   }
-  return Object.freeze(out);
+  return out;
 }
 
 export function buildVfx(overrides) {

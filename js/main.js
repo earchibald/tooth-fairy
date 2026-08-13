@@ -1,0 +1,224 @@
+// Boot, main loop, feedback drain, keyboard, debug API, dev-panel gate.
+
+import { buildConstants } from './config/constants.js';
+import { buildNames } from './config/names.js';
+import { buildVfx } from './config/vfx.js';
+import { buildScript } from './config/script.js';
+import { createState, serialize, deserialize } from './engine/state.js';
+import { dispatch as engineDispatch } from './engine/actions.js';
+import { tick, runOffline } from './engine/tick.js';
+import { fmt } from './engine/math.js';
+import { buildUI } from './ui/render.js';
+import { initSound, play } from './ui/sound.js';
+
+const params = new URLSearchParams(location.search);
+const SPEED = Math.max(0.1, Math.min(1000, Number(params.get('speed')) || 1));
+const DEV = params.get('dev') === '1' ||
+  ['localhost', '127.0.0.1'].includes(location.hostname);
+
+function loadOverrides(key) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+}
+
+const cfg = buildConstants(loadOverrides('tf-ov-constants'));
+const names = buildNames(loadOverrides('tf-ov-names'));
+const vfx = buildVfx(loadOverrides('tf-ov-vfx'));
+const script = buildScript(loadOverrides('tf-ov-script'));
+
+initSound(vfx);
+
+// ---- state ----
+const box = { state: null };
+let savedAt = null;
+const savedRaw = localStorage.getItem('tf-save');
+if (savedRaw) {
+  const parsed = deserialize(savedRaw);
+  if (parsed) { box.state = parsed.state; savedAt = parsed.savedAt; }
+}
+if (!box.state) box.state = createState((Date.now() & 0xfffffff) || 1);
+
+function save() {
+  try { localStorage.setItem('tf-save', serialize(box.state)); } catch { /* storage full */ }
+}
+
+function dispatch(action, arg) {
+  return engineDispatch(box.state, cfg, action, arg);
+}
+
+// ---- UI ----
+const app = document.getElementById('app');
+const ui = buildUI(app, {
+  cfg, names, vfx, script,
+  dispatch,
+  getState: () => box.state,
+  loadState: (s) => { box.state = s; save(); },
+  resetGame: () => { localStorage.removeItem('tf-save'); location.reload(); },
+  onBeatDismissed: () => { save(); },
+  onCeremony: () => { play.buy(); },
+});
+
+// Offline catch-up on boot.
+if (savedAt) {
+  const away = (Date.now() - savedAt) / 1000;
+  const gain = runOffline(box.state, cfg, script, away);
+  if (gain.teeth > 0) ui.overlays.showReturn(gain.teeth, gain.seconds);
+}
+
+// ---- tap wiring (pointer) ----
+ui.tapBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  doTap();
+});
+
+function doTap() {
+  if (dispatch('tap')) {
+    ui.tapBtn.classList.add('pressed');
+    setTimeout(() => ui.tapBtn.classList.remove('pressed'), vfx.pulse.buttonPressMs);
+  }
+  // A refused tap is silent: sound rides the sfx queue, which only fills on effect.
+}
+
+// ---- main loop: 50ms accumulator driving fixed ticks ----
+let accum = 0;
+let last = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  const dt = Math.min(2000, now - last);
+  last = now;
+  if (document.hidden && !DEV) return; // dev keeps running for tuning + automation
+  if (box.state.beatQueue.length || ui.overlays.anyOpen()) return;
+  accum += dt * SPEED;
+  let safety = 0;
+  while (accum >= cfg.TICK_MS && safety++ < 200) {
+    accum -= cfg.TICK_MS;
+    tick(box.state, cfg, script);
+  }
+}, 50);
+
+// ---- feedback drain + render, rAF gated on uiSeq ----
+let lastSeq = -1;
+const notePool = script.notes;
+function drainSfx() {
+  const events = box.state.sfx;
+  if (!events.length) return;
+  box.state.sfx = [];
+  const now = performance.now();
+  for (const ev of events) {
+    switch (ev.type) {
+      case 'tap':
+        play.tap();
+        ui.spawnFloat('+' + fmt(ev.gain), 0.5);
+        break;
+      case 'fillset': play.fill(); break;
+      case 'income': ui.conveyor.credit(ev.amount, now); break;
+      case 'buy': play.buy(); break;
+      case 'beatDismiss': play.beat(); save(); break;
+      case 'wake': {
+        play.wake();
+        const unitName = ev.unit ? names.units[ev.unit].name : '';
+        ui.stage.aside(`someone woke. belief slips. ${unitName ? unitName.toLowerCase() + ' lies low.' : ''}`, 'wake');
+        break;
+      }
+      case 'note': {
+        play.note();
+        const text = notePool[(box.state.noteIdx - 1) % notePool.length];
+        ui.stage.aside(text, 'note');
+        break;
+      }
+      case 'noteArrive': break; // the chip count changing is the feedback
+      case 'aside': {
+        const aside = script.asides.find((a) => a.id === ev.id);
+        if (aside) ui.stage.aside(aside.text);
+        break;
+      }
+      case 'reveal': break;    // the roost handles arrival ceremony
+      case 'ferry': break;     // the conveyor lump is the feedback
+      case 'expire': break;
+      default: break;
+    }
+  }
+}
+
+function frame() {
+  drainSfx();
+  if (box.state.uiSeq !== lastSeq) {
+    lastSeq = box.state.uiSeq;
+    ui.update(box.state);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// rAF freezes in hidden tabs; in dev, a slow interval keeps the DOM honest
+// so automated screenshots never capture a stale frame.
+if (DEV) {
+  setInterval(() => {
+    drainSfx();
+    if (box.state.uiSeq !== lastSeq) {
+      lastSeq = box.state.uiSeq;
+      ui.update(box.state);
+    }
+  }, 400);
+}
+
+// ---- whispers ----
+setInterval(() => {
+  if (document.hidden || ui.overlays.anyOpen()) return;
+  ui.stage.whisper(box.state, script);
+}, vfx.beats.whisperEveryS * 1000);
+
+// ---- autosave ----
+setInterval(save, 5000);
+window.addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { save(); }
+});
+
+// ---- keyboard ----
+document.addEventListener('keydown', (e) => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+  const beatBtn = document.querySelector('.beatCard.show [data-testid="beat-response"]');
+  if (beatBtn && (e.key === ' ' || e.key === 'Enter')) {
+    e.preventDefault();
+    beatBtn.click();
+    return;
+  }
+  switch (e.key) {
+    case ' ': case 't': e.preventDefault(); doTap(); break;
+    case 's': dispatch('tiptoe'); break;
+    case 'n': dispatch('readNote'); break;
+    case 'j':
+      ui.overlays.anyOpen() ? ui.overlays.closeAll()
+        : ui.overlays.openJournal(box.state, script);
+      break;
+    case 'Escape': ui.overlays.closeAll(); break;
+    default:
+      if (e.key >= '1' && e.key <= '9') ui.roost.pressKey(Number(e.key));
+  }
+});
+
+// ---- debug API ----
+window.game = {
+  get state() { return box.state; },
+  dispatch,
+  cfg, names, vfx, script,
+  debug: {
+    advanceTicks(n) { for (let i = 0; i < n; i++) tick(box.state, cfg, script); },
+    runUntil(fn, maxTicks = 100000) {
+      let i = 0;
+      while (!fn(box.state) && i++ < maxTicks) tick(box.state, cfg, script);
+      return i;
+    },
+    grant(n) { dispatch('devGrant', { n }); },
+    save,
+    offline(seconds) { return runOffline(box.state, cfg, script, seconds); },
+  },
+};
+
+// ---- dev panel gate ----
+if (DEV) {
+  import('./dev/panel.js')
+    .then((m) => m.mountDevPanel({ app, box, cfg, names, vfx, script, dispatch, ui, save }))
+    .catch((err) => console.warn('[dev] panel failed to load', err));
+}
