@@ -50,13 +50,14 @@ body {
 .topbar .spacer { flex: 1; }
 .chip {
   font-size: 12px; color: var(--dim); background: var(--surface);
-  border: 1px solid #ffffff14; border-radius: 999px; padding: 4px 10px;
-  cursor: pointer;
+  border: 1px solid #ffffff14; border-radius: 999px; padding: 4px 12px;
+  cursor: pointer; min-height: 40px;
 }
 .chip:not([disabled]):hover { color: var(--ink); }
 .iconbtn {
   background: none; border: none; color: var(--dim); font-size: 17px;
   cursor: pointer; padding: 4px 6px; border-radius: 8px;
+  min-height: 40px; min-width: 40px;
 }
 .iconbtn:hover { color: var(--ink); background: #ffffff0a; }
 
@@ -89,10 +90,11 @@ body {
 
 .beatCard {
   position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 26px;
+  align-items: safe center; justify-content: safe center; gap: 26px;
   background: color-mix(in srgb, var(--bg) 82%, black);
   padding: 24px; text-align: center; z-index: 5;
   opacity: 0; transition: opacity 0.45s;
+  overflow-y: auto;
 }
 .beatCard.show { opacity: 1; }
 .beatText {
@@ -232,7 +234,8 @@ body {
 }
 .overlay h2 { font-size: 15px; letter-spacing: 0.1em; color: var(--dim);
   margin-bottom: 14px; }
-.overlay .closeBtn { position: absolute; top: 10px; right: 12px; }
+.overlay .closeBtn { position: sticky; top: 0; align-self: flex-end;
+  margin: -6px -2px 0 0; z-index: 1; }
 .journalEntry { margin-bottom: 14px; }
 .journalEntry .jt { font-family: Georgia, serif; font-style: italic;
   font-size: 14px; line-height: 1.5; }
@@ -248,7 +251,7 @@ body {
 .settingsRow button, .settingsRow select {
   font: inherit; font-size: 12px; background: var(--surface); color: var(--ink);
   border: 1px solid #ffffff22; border-radius: 8px; padding: 6px 12px;
-  cursor: pointer; min-height: 34px;
+  cursor: pointer; min-height: 40px;
 }
 .settingsRow input[type="text"], textarea.saveBox {
   font: inherit; font-size: 11px; background: #0007; color: var(--ink);
@@ -264,4 +267,7 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  /* Floats must still be readable: show statically for the dwell period
+     (the JS timeout removes the node). */
+  .float { animation: none !important; opacity: 1; }
 }

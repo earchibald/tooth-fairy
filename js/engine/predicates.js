@@ -39,7 +39,8 @@ export function baseRatePerSec(state, cfg) {
 
 // The number the rate readout shows: everything applied.
 export function effectiveRatePerSec(state, cfg) {
-  const lumps = state.units.ferry > 0
+  const ferryStunned = state.stunUnit === 'ferry' && state.stunTicks > 0;
+  const lumps = state.units.ferry > 0 && cfg.UNITS.ferry.lumpEveryTicks > 0 && !ferryStunned
     ? (cfg.UNITS.ferry.lumpAmount * state.units.ferry * multFactor(state, 'ferry')) /
       (cfg.UNITS.ferry.lumpEveryTicks * (cfg.TICK_MS / 1000))
     : 0;
@@ -87,30 +88,40 @@ export function multTier(state, unit, cfg) {
            cost: Math.ceil(cfg.UNITS[unit].base * cfg.MULT_COST_FACTOR * Math.pow(8, tier)) };
 }
 
+// Springboard thresholds count lifetime buys for sprites (they expire) and
+// the live roster for everything else.
+export function multOwned(state, unit) {
+  return unit === 'sprite' ? state.buys.sprite : state.units[unit];
+}
+
 // ---- Reveal predicates (sticky; tick copies true results into state.revealed) ----
 
 export function revealChecks(state, cfg) {
   const t = state.teeth;
   const prevTap = (id) => state.upgrades[id];
+  // Hint at affordability — with a lifetime backstop, because an eager
+  // spender's BALANCE may never cross the price even as the economy grows.
+  // A reveal that can be stranded by playstyle is a soft-lock in costume.
+  const afford = (cost) => t >= cost || state.lifetime >= cost * 3;
   return {
-    'unit:scout': state.upgrades.babyfae && t >= cfg.UNITS.scout.base,
-    'unit:mouse': state.buys.scout >= 1 && t >= cfg.UNITS.mouse.base,
-    'unit:sprite': state.act >= 2 && t >= cfg.UNITS.sprite.base,
-    'unit:phantom': state.act >= 2 && t >= cfg.UNITS.phantom.base,
-    'unit:ferry': state.act >= 2 && t >= cfg.UNITS.ferry.base,
+    'unit:scout': state.upgrades.babyfae && afford(cfg.UNITS.scout.base),
+    'unit:mouse': state.buys.scout >= 1 && afford(cfg.UNITS.mouse.base),
+    'unit:sprite': state.act >= 2 && afford(cfg.UNITS.sprite.base),
+    'unit:phantom': state.act >= 2 && afford(cfg.UNITS.phantom.base),
+    'unit:ferry': state.act >= 2 && afford(cfg.UNITS.ferry.base),
     'unit:pact': state.act >= 3, // the fold beat is the ceremony; the card may tease
     'unit:ministry': state.buys.pact >= 3, // the ledger beat is the hint; the card teases
 
     'up:babyfae': state.act >= 1,
-    'up:pincers': prevTap('babyfae') && state.buys.scout >= 3 && t >= cfg.UPGRADES.pincers.cost,
-    'up:tweezers': prevTap('pincers') && t >= cfg.UPGRADES.tweezers.cost,
-    'up:gloves': prevTap('tweezers') && t >= cfg.UPGRADES.gloves.cost,
-    'up:starlight': prevTap('gloves') && t >= cfg.UPGRADES.starlight.cost,
-    'up:afterglow': state.buys.sprite >= 3 && t >= cfg.UPGRADES.afterglow.cost,
-    'up:sandman': state.tiptoes >= 2 && t >= cfg.UPGRADES.sandman.cost,
-    'up:dreamledger': state.lifetime >= 5000 && t >= cfg.UPGRADES.dreamledger.cost,
-    'up:nightledger': state.upgrades.dreamledger && t >= cfg.UPGRADES.nightledger.cost,
-    'up:lucidcontract': state.upgrades.nightledger && t >= cfg.UPGRADES.lucidcontract.cost,
-    'loom': state.stirShown && t >= cfg.LOOM.base,
+    'up:pincers': prevTap('babyfae') && state.buys.scout >= 3 && afford(cfg.UPGRADES.pincers.cost),
+    'up:tweezers': prevTap('pincers') && afford(cfg.UPGRADES.tweezers.cost),
+    'up:gloves': prevTap('tweezers') && afford(cfg.UPGRADES.gloves.cost),
+    'up:starlight': prevTap('gloves') && afford(cfg.UPGRADES.starlight.cost),
+    'up:afterglow': state.buys.sprite >= 3 && afford(cfg.UPGRADES.afterglow.cost),
+    'up:sandman': state.tiptoes >= 2 && afford(cfg.UPGRADES.sandman.cost),
+    'up:dreamledger': state.beatsSeen.includes('a1-rounds') && state.lifetime >= 5000 && afford(cfg.UPGRADES.dreamledger.cost),
+    'up:nightledger': state.upgrades.dreamledger && afford(cfg.UPGRADES.nightledger.cost),
+    'up:lucidcontract': state.upgrades.nightledger && afford(cfg.UPGRADES.lucidcontract.cost),
+    'loom': state.stirShown && afford(cfg.LOOM.base),
   };
 }

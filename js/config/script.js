@@ -1,9 +1,9 @@
 // The story. Pure data: no imports, no DOM, no functions in records.
 // Registers: 'memory' (the fairy, lowercase, spare) · 'ledger' (fae bureaucracy,
 // mono, counted) · responses are the player's voice (lowercase snark).
-// Trigger types: start · afterBeat{id} · outline{set} · lifetime{value} ·
+// Trigger types: start · afterBeat{id} · outline{set} · lifetime{value,minAct?} ·
 // buy{unit,count} · upgrade{id} · loom{level} · wake{count} · noteRead{count} ·
-// stirReveal · ending
+// taps{count} · tiptoes{count} · stirReveal · ending · never
 // A beat pauses the game until its response is pressed. Beats never fire offline.
 
 export const SCRIPT_DEFAULTS = Object.freeze({
@@ -42,12 +42,12 @@ export const SCRIPT_DEFAULTS = Object.freeze({
     { id: 'a1-coin', act: 1, register: 'memory',
       text: "you're supposed to leave something. a coin. i left a button once. she kept it. they keep everything.",
       response: 'classy', trigger: { type: 'lifetime', value: 800 } },
-    { id: 'a1-flashlight', act: 1, register: 'memory',
-      text: 'one of them sleeps with a flashlight under the pillow. waiting for me. i like that one.',
-      response: 'noted', trigger: { type: 'lifetime', value: 2500 } },
     { id: 'a1-notes', act: 1, register: 'memory',
       text: "they leave notes. 'dear tooth fairy.' i can't read them yet. i will.",
       response: 'why not', trigger: { type: 'lifetime', value: 1500 } },
+    { id: 'a1-flashlight', act: 1, register: 'memory',
+      text: 'one of them sleeps with a flashlight under the pillow. waiting for me. i like that one.',
+      response: 'keep an eye on that one', trigger: { type: 'lifetime', value: 2500 } },
 
     // ---- ACT 2 · THE OPERATION ----
     { id: 'a2-stir', act: 2, register: 'memory',
@@ -77,12 +77,12 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'kids are alright', trigger: { type: 'noteRead', count: 1 } },
     { id: 'a2-doorway', act: 2, register: 'memory',
       text: "there's someone in the doorway. tall. tired. holding a tooth between finger and thumb like it's evidence. they're not surprised to see me.",
-      response: 'uh oh', trigger: { type: 'lifetime', value: 800000 } },
+      response: 'uh oh', trigger: { type: 'lifetime', value: 800000, minAct: 2 } },
 
     // ---- ACT 3 · THE FOLD ----
     { id: 'a3-fold', act: 3, register: 'memory',
       text: "they've known. of course they've known. who did i think moved the pillow back? who left the porch light off on purpose?",
-      response: 'the parents', trigger: { type: 'lifetime', value: 1000000 },
+      response: 'the parents', trigger: { type: 'lifetime', value: 1000000, minAct: 2 },
       effects: { act: 3 } },
     { id: 'a3-firstpact', act: 3, register: 'memory',
       text: "the first signature is neat. careful. grown-up. they kept the flashlight, you know. it's on the nightstand now. for their kid.",
@@ -113,7 +113,7 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'two of them compare socks.' },
     { id: 'as-scout10', trigger: { type: 'buy', unit: 'scout', count: 10 },
       text: 'the scouts have a union now. their demands are reasonable.' },
-    { id: 'as-scout25', trigger: { type: 'buy', unit: 'scout', count: 20 },
+    { id: 'as-scout20', trigger: { type: 'buy', unit: 'scout', count: 20 },
       text: 'the scouts hold a jamboree. attendance: mandatory. fun: also mandatory.' },
     { id: 'as-mouse5',  trigger: { type: 'buy', unit: 'mouse', count: 5 },
       text: 'the mice have opinions about the scouts.' },
@@ -135,11 +135,11 @@ export const SCRIPT_DEFAULTS = Object.freeze({
         'the moon keeps minutes.'],
     2: ['the houses breathe slow.',
         'a nightlight negotiates with the dark.',
-        'the ferry horn, one town over. softly.',
-        'ninety seconds of forever.'],
-    3: ['the phone tree rustles.',
+        'a horn on the river, one town over. softly.',
+        'small wings, punching in.'],
+    3: ['something rustles, house to house.',
         'a porch light goes dark, politely.',
-        'form 32-b, in triplicate.',
+        'paperwork, in triplicate, somewhere.',
         'the sky is patient.'],
   },
 

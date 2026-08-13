@@ -13,7 +13,7 @@ function triggerMet(state, cfg, trig) {
     case 'start': return true;
     case 'afterBeat': return state.beatsSeen.includes(trig.id);
     case 'outline': return state.outline.setsDone >= trig.set;
-    case 'lifetime': return state.lifetime >= trig.value;
+    case 'lifetime': return state.lifetime >= trig.value && state.act >= (trig.minAct || 0);
     case 'buy': return state.buys[trig.unit] >= trig.count;
     case 'upgrade': return !!state.upgrades[trig.id];
     case 'loom': return state.loom >= trig.level;
@@ -60,7 +60,8 @@ export function tick(state, cfg, script, opts) {
   // Ferry docks on a fixed cadence and delivers a lump.
   let lump = 0;
   let ferrySpike = 0;
-  if (state.units.ferry > 0) {
+  const ferryStunned = state.stunUnit === 'ferry' && state.stunTicks > 0;
+  if (state.units.ferry > 0 && cfg.UNITS.ferry.lumpEveryTicks > 0 && !ferryStunned) {
     state.ferryPhase += dtTicks;
     const def = cfg.UNITS.ferry;
     while (state.ferryPhase >= def.lumpEveryTicks) {
@@ -69,7 +70,7 @@ export function tick(state, cfg, script, opts) {
       ferrySpike = def.noiseSpike * state.units.ferry;
       if (!offline) state.sfx.push({ type: 'ferry' });
     }
-  } else {
+  } else if (state.units.ferry === 0) {
     state.ferryPhase = 0;
   }
 
@@ -89,7 +90,9 @@ export function tick(state, cfg, script, opts) {
     state.noteAccumS += dt;
     if (state.noteAccumS >= cfg.NOTES.EVERY_S) {
       state.noteAccumS -= cfg.NOTES.EVERY_S;
-      state.notes++;
+      // The pillow only holds so many: an inventory cap keeps a long absence
+      // from banking hours of belief.
+      state.notes = Math.min(cfg.NOTES.CAP, state.notes + 1);
       state.notesShown = true;
       if (!offline) state.sfx.push({ type: 'noteArrive' });
     }
@@ -103,11 +106,22 @@ export function tick(state, cfg, script, opts) {
   if (state.settleTicks > 0) {
     state.settleTicks = Math.max(0, state.settleTicks - dtTicks);
   } else if (state.stirShown) {
-    if (noise > hush) {
+    if (noise > hush && !offline) {
+      // Offline never accrues stir — otherwise "offline never wakes a house"
+      // would only defer the wake to the first tick after the return screen.
       state.stir = Math.min(100, state.stir + (noise - hush) * cfg.STIR.RATE * dt);
     } else {
       state.stir = Math.max(0, state.stir - cfg.STIR.FALL_RATE * dt);
     }
+  }
+
+  // The sandman tiptoes for you: paid automation of the free ugly verb.
+  if (!offline && state.upgrades.sandman && state.stirShown &&
+      state.stir >= cfg.TIPTOE.SANDMAN_AT && state.tiptoeTicks === 0 &&
+      state.settleTicks === 0) {
+    state.tiptoeTicks = cfg.TIPTOE.TICKS;
+    state.tiptoes++;
+    state.sfx.push({ type: 'tiptoe', auto: true });
   }
 
   const wakeAt = state.wakes === 0 ? cfg.STIR.FIRST_WAKE_AT : cfg.STIR.WAKE_AT;

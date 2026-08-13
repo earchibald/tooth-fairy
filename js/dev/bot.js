@@ -22,7 +22,7 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       const id = state.beatQueue[0];
       const beat = script.beats.find((b) => b.id === id);
       dispatch(state, cfg, 'applyBeatEffects', { effects: beat && beat.effects });
-      dispatch(state, cfg, 'dismissBeat');
+      dispatch(state, cfg, 'dismissBeat', { id });
       events.push({ tick: state.tick, beat: id });
       if (state.postEnd) break;
       continue; // the game pauses while a beat is open
@@ -44,12 +44,18 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       const cost = nextCost(def.base, def.growth, state.buys[unit]);
       const mult = Math.pow(2, state.mults[unit] || 0);
       const rate = (def.rate || (def.lumpAmount / (def.lumpEveryTicks * cfg.TICK_MS / 1000))) * mult;
-      if (unit === top || cost / rate <= 450) {
+      // Mortal units can only ever repay their own lifetime of production.
+      const lifeCap = def.lifeTicks
+        ? rate * (def.lifeTicks * cfg.TICK_MS / 1000) *
+          (1 + (state.upgrades.afterglow ? def.afterglowFrac : 0))
+        : Infinity;
+      if (unit === top || (cost / rate <= 450 && cost < lifeCap)) {
         dispatch(state, cfg, 'buyUnit', { unit });
       }
     }
     for (const unit of BUY_PRIORITY) dispatch(state, cfg, 'buyMult', { unit });
     tick(state, cfg, script);
+    state.sfx.length = 0; // transient feedback, unread headless
     if (onTick) onTick(state);
   }
   return { state, events, steps };

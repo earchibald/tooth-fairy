@@ -20,7 +20,11 @@ export function createOverlays(root, ctx) {
   const journal = el('div', 'overlay');
   journal.hidden = true;
   journal.dataset.testid = 'journal';
+  journal.setAttribute('role', 'dialog');
+  journal.setAttribute('aria-modal', 'true');
+  journal.setAttribute('aria-label', names.verbs.journal);
   const jClose = el('button', 'iconbtn closeBtn', '✕');
+  jClose.setAttribute('aria-label', 'close');
   jClose.addEventListener('click', () => { journal.hidden = true; });
   const jTitle = el('h2', null, names.verbs.journal);
   const jList = el('div');
@@ -40,13 +44,18 @@ export function createOverlays(root, ctx) {
     }
     if (!jList.firstChild) jList.appendChild(el('div', 'jt', '(nothing yet. get some teeth.)'));
     journal.hidden = false;
+    jClose.focus();
   }
 
   // ---- settings ----
   const settings = el('div', 'overlay');
   settings.hidden = true;
   settings.dataset.testid = 'settings';
+  settings.setAttribute('role', 'dialog');
+  settings.setAttribute('aria-modal', 'true');
+  settings.setAttribute('aria-label', names.ui.settings);
   const sClose = el('button', 'iconbtn closeBtn', '✕');
+  sClose.setAttribute('aria-label', 'close');
   sClose.addEventListener('click', () => { settings.hidden = true; });
   settings.append(sClose, el('h2', null, names.ui.settings));
 
@@ -69,6 +78,7 @@ export function createOverlays(root, ctx) {
   vol.max = '1';
   vol.step = '0.05';
   vol.value = String(ctx.vfx.sound.master);
+  vol.setAttribute('aria-label', 'volume');
   vol.addEventListener('input', () => setMasterGain(Number(vol.value)));
   rowVol.appendChild(vol);
   settings.appendChild(rowVol);
@@ -111,6 +121,7 @@ export function createOverlays(root, ctx) {
   const resetInput = document.createElement('input');
   resetInput.type = 'text';
   resetInput.placeholder = names.ui.resetConfirm;
+  resetInput.setAttribute('aria-label', names.ui.resetConfirm);
   const resetBtn = el('button', null, 'forget');
   resetBtn.dataset.testid = 'reset';
   resetBtn.addEventListener('click', () => {
@@ -139,7 +150,7 @@ export function createOverlays(root, ctx) {
 
   return {
     openJournal,
-    openSettings: () => { settings.hidden = false; },
+    openSettings: () => { settings.hidden = false; sClose.focus(); },
     showReturn(gain, seconds) {
       retBig.textContent = '+' + fmt(gain) + ' teeth';
       const h = Math.floor(seconds / 3600);

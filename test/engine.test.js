@@ -149,7 +149,7 @@ test('determinism: same seed, same script → deep-equal states', () => {
       if (s.beatQueue.length) {
         const beat = script.beats.find((b) => b.id === s.beatQueue[0]);
         dispatch(s, cfg, 'applyBeatEffects', { effects: beat && beat.effects });
-        dispatch(s, cfg, 'dismissBeat');
+        dispatch(s, cfg, 'dismissBeat', { id: s.beatQueue[0] });
       }
     }
     s.sfx = [];

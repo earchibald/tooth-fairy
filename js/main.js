@@ -37,6 +37,14 @@ if (savedRaw) {
 }
 if (!box.state) box.state = createState((Date.now() & 0xfffffff) || 1);
 
+// A queued beat id the current script does not know would freeze the game
+// forever (the loop pauses while the queue is non-empty). Drop orphans; their
+// triggers re-queue naturally if still valid, since the id was never seen.
+function sanitizeQueue(state) {
+  state.beatQueue = state.beatQueue.filter((id) => script.beats.some((b) => b.id === id));
+}
+sanitizeQueue(box.state);
+
 function save() {
   try { localStorage.setItem('tf-save', serialize(box.state)); } catch { /* storage full */ }
 }
@@ -51,7 +59,7 @@ const ui = buildUI(app, {
   cfg, names, vfx, script,
   dispatch,
   getState: () => box.state,
-  loadState: (s) => { box.state = s; save(); },
+  loadState: (s) => { sanitizeQueue(s); box.state = s; save(); },
   resetGame: () => { localStorage.removeItem('tf-save'); location.reload(); },
   onBeatDismissed: () => { save(); },
   onCeremony: () => { play.buy(); },
@@ -115,8 +123,8 @@ function drainSfx() {
       case 'beatDismiss': play.beat(); save(); break;
       case 'wake': {
         play.wake();
-        const unitName = ev.unit ? names.units[ev.unit].name : '';
-        ui.stage.aside(`someone woke. belief slips. ${unitName ? unitName.toLowerCase() + ' lies low.' : ''}`, 'wake');
+        const unitName = ev.unit ? names.units[ev.unit].name.toLowerCase() : '';
+        ui.stage.aside(names.ui.wakeAside.replace('{unit}', unitName), 'wake');
         break;
       }
       case 'note': {
@@ -178,6 +186,12 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+  // While an overlay is up, only closing keys work — a hidden beat response
+  // or a purchase must never fire behind a dialog.
+  if (ui.overlays.anyOpen()) {
+    if (e.key === 'Escape' || e.key === 'j') ui.overlays.closeAll();
+    return;
+  }
   const beatBtn = document.querySelector('.beatCard.show [data-testid="beat-response"]');
   if (beatBtn && (e.key === ' ' || e.key === 'Enter')) {
     e.preventDefault();

@@ -7,7 +7,7 @@
 | Genre | Incremental clicker, progressive disclosure, story-driven |
 | One word (tetrad) | **BELIEF** — mechanics, story, aesthetic, and tech all express it |
 | Core loop | Tap teeth → buy helpers → noise stirs the house → hush it → grow louder anyway |
-| Currencies | TEETH (primary), NOTES (curiosity drip → belief faucet), BELIEF (0–100 meter → ×1–×2 global multiplier) |
+| Currencies | TEETH (primary), NOTES (drip, capped inventory → belief faucet), BELIEF (0–100; 50 is neutral ×1.0, range ×0.5–×1.5) |
 | Pressure mechanic | STIR meter: production makes noise; noise stirs children; a wake event costs belief |
 | Story spine | An amnesiac fairy reconstructs her identity, her craft, and finally her purpose. Parents enter the fold as Act 3's technology AND reveal |
 | Recurring character | The flashlight kid: Act 1 charm → Act 2 wake event → Act 3 first parent to sign the pact |
@@ -241,3 +241,19 @@ lives in STIR: every purchase is louder; the quiet options are dearer; the free 
 The Act 3 reveal converts the antagonist (being seen) into the best technology in the game —
 the mechanical relief IS the emotional payoff. Just before frustration: the next relief is
 gated to land at affordability at the top of each effort climb.
+
+## 9. Post-review addendum (2026-08-13, shipped build)
+
+The adversarial review pass and bot measurement changed these decisions;
+the Balance tab and `js/config/constants.js` are the live truth.
+
+| Decision | Shipped form |
+|---|---|
+| Belief | 50 is neutral (×1.0); wakes cost 10; equilibrium reaches the 75 streak cap |
+| Ending | Player-caused: MINISTRY owned AND 50M lifetime — the wall is summoned, not waited for |
+| Stir | Frozen until its meter reveals; first wake is a set piece at 55; 30 s settle after wakes; never accrues offline |
+| Sprites | Priced on the ACTIVE swarm; hard swarm cap (8, +4 per springboard) so re-buying is never a chore |
+| Reveals | Affordability gates carry a ×3 lifetime backstop — no playstyle can strand a mechanic |
+| Notes | Inventory capped at 12 — absence cannot bank hours of belief |
+| SANDMAN | Implemented: auto-tiptoe at stir 85 |
+| Measured shape (bot) | acts at ~0 / 5 / 20 min; ending ≈ 34 min; ~6 wakes/run |

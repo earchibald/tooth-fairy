@@ -51,6 +51,7 @@ export function buildUI(app, ctx) {
   notesChip.addEventListener('click', () => dispatch('readNote'));
   const journalBtn = el('button', 'iconbtn', '☾');
   journalBtn.title = names.verbs.journal;
+  journalBtn.setAttribute('aria-label', names.verbs.journal);
   journalBtn.dataset.testid = 'journal-open';
   journalBtn.hidden = true;
   const settingsBtn = el('button', 'iconbtn', '⚙');
@@ -66,9 +67,10 @@ export function buildUI(app, ctx) {
     script: ctx.script,
     onRespond: (beat) => {
       dispatch('applyBeatEffects', { effects: beat.effects });
-      dispatch('dismissBeat');
+      dispatch('dismissBeat', { id: beat.id });
       ctx.onBeatDismissed(beat);
     },
+    onOrphan: (id) => { dispatch('dismissBeat', { id }); },
   });
 
   // ---- roost ----

@@ -4,7 +4,7 @@ import { toothSVG } from './tooth.js';
 import { mulberry32 } from '../engine/rng.js';
 import { fmt } from '../engine/math.js';
 
-export function createStage(el, { vfx, script, onRespond }) {
+export function createStage(el, { vfx, script, onRespond, onOrphan }) {
   el.classList.add('stage');
 
   const asideLayer = document.createElement('div');
@@ -146,6 +146,11 @@ export function createStage(el, { vfx, script, onRespond }) {
       const queuedId = state.beatQueue[0] || null;
       if (queuedId && (!shownBeat || shownBeat.id !== queuedId)) {
         const beat = activeScript.beats.find((b) => b.id === queuedId);
+        if (!beat) {
+          // An id the script no longer knows must never freeze the game.
+          if (onOrphan) onOrphan(queuedId);
+          return;
+        }
         if (beat && !beatTimer) {
           beatTimer = setTimeout(() => {
             beatTimer = null;

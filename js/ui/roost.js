@@ -3,7 +3,7 @@
 // text writes — never a rebuild. Buttons print base numbers, never derived.
 
 import { nextCost, maxAffordable, fmt } from '../engine/math.js';
-import { multTier, loomCost } from '../engine/predicates.js';
+import { multTier, multOwned, loomCost } from '../engine/predicates.js';
 import { UNIT_IDS } from '../engine/state.js';
 
 function el(tag, cls, text) {
@@ -53,7 +53,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
     }
     if (unit === 'sprite') {
       const secs = def.lifeTicks * cfg.TICK_MS / 1000;
-      return `+${fmt(def.rate)}/s apiece · lives ${secs}s`;
+      return `+${fmt(def.rate)}/s apiece · lives ${secs}s · swarm of ${def.swarmCap}`;
     }
     if (unit === 'pact') return `+${fmt(def.rate)}/s apiece · the house stays asleep`;
     return `+${fmt(def.rate)}/s apiece` + (def.noise ? '' : ' · silent');
@@ -79,8 +79,9 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
       cache: {},
       update(s, cache) {
         const owned = s.units[unit];
-        const cost = nextCost(def.base, def.growth, s.buys[unit]);
-        const canMax = maxAffordable(def.base, def.growth, s.buys[unit], s.teeth);
+        const basis = unit === 'sprite' ? s.units.sprite : s.buys[unit];
+        const cost = nextCost(def.base, def.growth, basis);
+        const canMax = maxAffordable(def.base, def.growth, basis, s.teeth);
         const mults = s.mults[unit];
         const set = (k, v, fn) => { if (cache[k] !== v) { cache[k] = v; fn(v); } };
         set('lv', owned > 0 ? `${names.ui.owned} ${owned}${mults ? ' ·×' + (1 << mults) : ''}` : '',
@@ -105,7 +106,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
       key: 'mult:' + unit,
       isVisible: (s) => {
         const tier = multTier(s, unit, cfg);
-        return !!tier && s.units[unit] >= tier.threshold;
+        return !!tier && multOwned(s, unit) >= tier.threshold;
       },
       node: m.node,
       primary: { btn: mBuy.btn, keyChip: mBuy.keyChip, run: () => dispatch('buyMult', { unit }) },
@@ -183,9 +184,16 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
   }
 
   const everVisible = new Set();
+  let booted = false;
 
   return {
     update(state) {
+      // First frame after boot: mark already-visible cards seen, no ceremony.
+      if (!booted) {
+        booted = true;
+        for (const card of cards) if (card.isVisible(state)) everVisible.add(card.key);
+        everVisible.add('__boot');
+      }
       let keyIdx = 0;
       for (const card of cards) {
         const vis = card.isVisible(state);
@@ -221,11 +229,6 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
         } else {
           card.keySlot = 0;
         }
-      }
-      // First frame: mark existing reveals as seen without ceremony.
-      if (!everVisible.size) {
-        for (const card of cards) if (!card.node.hidden) everVisible.add(card.key);
-        everVisible.add('__boot');
       }
     },
     pressKey(n) {

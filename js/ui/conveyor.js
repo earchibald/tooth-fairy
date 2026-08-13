@@ -6,6 +6,8 @@ import { toothPath2D } from './tooth.js';
 
 export function createConveyor(canvas, vfx, onLand) {
   const path = toothPath2D();
+  const reducedMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ctx2d = canvas.getContext('2d');
   let w = 0;
   let h = 0;
@@ -82,6 +84,7 @@ export function createConveyor(canvas, vfx, onLand) {
   return {
     // Credit `amount` teeth of automated income toward the next inbound sprite.
     credit(amount, now) {
+      if (reducedMotion) { if (onLand) onLand(amount); return; }
       pool += amount;
       if (!poolSince) poolSince = now;
       if (sprites.length < vfx.motif.inboundMax &&

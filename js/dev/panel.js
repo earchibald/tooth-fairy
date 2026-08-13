@@ -195,7 +195,7 @@ function buildPanel(ctx) {
 function knobRows(body, { defaults, live, ovKey, kind }) {
   const ov = loadOv(ovKey);
 
-  function makeRow(section, path, defVal) {
+  function makeRow(section, path, defVal, inArray) {
     const row = el('div', 'devRow');
     const label = el('span', 'path', path.join('.'));
     row.appendChild(label);
@@ -216,13 +216,30 @@ function knobRows(body, { defaults, live, ovKey, kind }) {
       let value = raw;
       if (isNum) {
         value = Number(raw);
-        // Reject, never clamp: a clamped value is a lie about what you applied.
-        if (!Number.isFinite(value)) { input.classList.add('bad'); return; }
+        // Reject, never clamp: a clamped value is a lie about what you
+        // applied. An emptied field is a rejection, not a zero, and a
+        // positive default never accepts zero or less (a 0 tick divisor
+        // once froze the whole tab).
+        if (String(raw).trim() === '' || !Number.isFinite(value) ||
+            (defVal > 0 && value <= 0)) {
+          input.classList.add('bad');
+          return;
+        }
       }
       input.classList.remove('bad');
       setPath(live, path, value);
-      if (value === defVal) deletePath(ov, path);
-      else setPath(ov, path, value);
+      if (inArray) {
+        // Array overrides only merge wholesale — store the entire live array.
+        const parent = path.slice(0, -1);
+        const liveArr = getPath(live, parent);
+        const defArr = getPath(defaults, parent);
+        if (JSON.stringify(liveArr) === JSON.stringify(defArr)) deletePath(ov, parent);
+        else setPath(ov, parent, liveArr.slice());
+      } else if (value === defVal) {
+        deletePath(ov, path);
+      } else {
+        setPath(ov, path, value);
+      }
       saveOv(ovKey, ov);
       row.classList.toggle('changed', value !== defVal);
     }
@@ -239,7 +256,7 @@ function knobRows(body, { defaults, live, ovKey, kind }) {
       const d = defs[key];
       const p = [...path, key];
       if (Array.isArray(d)) {
-        d.forEach((v, i) => { if (typeof v === 'number') makeRow(section, [...p, i], v); });
+        d.forEach((v, i) => { if (typeof v === 'number') makeRow(section, [...p, i], v, true); });
       } else if (d && typeof d === 'object') {
         walk(section, d, p);
       } else {
@@ -264,9 +281,9 @@ function ovBar(body, ctx, note) {
   const copyAll = el('button', null, 'copy all overrides');
   copyAll.addEventListener('click', () => {
     const all = {};
-    for (const [k, storageKey] of Object.entries(OV)) {
-      const v = localStorage.getItem(storageKey);
-      if (v) all[k] = JSON.parse(v);
+    for (const k of Object.keys(OV)) {
+      const parsed = loadOv(k);
+      if (Object.keys(parsed).length) all[k] = parsed;
     }
     navigator.clipboard.writeText(JSON.stringify(all, null, 2)).catch(() => {});
     copyAll.textContent = 'copied';
@@ -288,7 +305,7 @@ function ovBar(body, ctx, note) {
 
 function tabScript(body, ctx) {
   ovBar(body, ctx,
-    'text and response edits apply live. trigger edits and new beats need a reload. ▶ plays a beat now.');
+    'text, response, and trigger edits apply live. duplicated beats are born dormant — arm the trigger, or ▶ plays any beat now.');
   const ov = loadOv('script');
 
   function beatEditor(list, beat, isAdded) {
@@ -323,6 +340,8 @@ function tabScript(body, ctx) {
     function store(patch) {
       if (isAdded) {
         Object.assign(beat, patch);
+        const rec = (ov.addedBeats || []).find((b) => b.id === beat.id);
+        if (rec && rec !== beat) Object.assign(rec, patch);
         saveOv('script', ov);
       } else {
         Object.assign(beat, patch);           // live
@@ -345,7 +364,7 @@ function tabScript(body, ctx) {
       let n = 2;
       const all = ctx.script.beats.map((b) => b.id);
       while (all.includes(beat.id + '-' + n)) n++;
-      const clone = { ...beat, trigger: { ...beat.trigger }, id: beat.id + '-' + n };
+      const clone = { ...beat, trigger: { type: 'never' }, id: beat.id + '-' + n };
       ov.addedBeats = ov.addedBeats || [];
       ov.addedBeats.push(clone);
       ctx.script.beats.push(clone);
@@ -594,7 +613,7 @@ function tabPacing(body, ctx) {
     const mins = (r.state.tick * ctx.cfg.TICK_MS / 60000).toFixed(1);
     host.appendChild(el('h3', null, 'summary'));
     host.appendChild(el('div', 'devNote',
-      `run: ${mins} game-minutes · postEnd: ${r.state.postEnd} · wakes: ${r.state.wakes}` +
+      `run: ${mins} game-minutes · dead time: ${(100 * r.deadTicks / Math.max(1, r.totalTicks)).toFixed(1)}% · postEnd: ${r.state.postEnd} · wakes: ${r.state.wakes}` +
       ` · lifetime: ${fmt(r.state.lifetime)} · beats seen: ${r.state.beatsSeen.length}/${ctx.script.beats.length}` +
       ` · acts at: ${Object.entries(r.acts).map(([a, t]) => a + '→' + mmss(t)).join(' · ')}`));
 

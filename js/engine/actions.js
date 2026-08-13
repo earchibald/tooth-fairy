@@ -3,7 +3,7 @@
 
 import { bulkCost, nextCost, maxAffordable } from './math.js';
 import {
-  tapPower, beliefMult, multTier, loomCost, revealChecks,
+  tapPower, beliefMult, multTier, multOwned, loomCost, revealChecks,
 } from './predicates.js';
 import { UNIT_IDS } from './state.js';
 
@@ -37,9 +37,19 @@ export const ACTIONS = {
     let n = arg.n || 1;
     if (!UNIT_IDS.includes(unit) || !state.revealed['unit:' + unit]) return;
     const def = cfg.UNITS[unit];
-    if (arg.max) n = maxAffordable(def.base, def.growth, state.buys[unit], state.teeth);
-    if (n < 1) return;
-    const cost = bulkCost(def.base, def.growth, state.buys[unit], n);
+    // Sprites expire, so their price tracks the ACTIVE swarm, not lifetime
+    // buys — the burst tool stays repurchasable and its real cost is noise.
+    // The night only holds so many: an explicit swarm cap keeps re-buying
+    // from becoming a mandatory chore that pins noise forever.
+    const basis = unit === 'sprite' ? state.units.sprite : state.buys[unit];
+    if (unit === 'sprite') {
+      const cap = def.swarmCap + (state.mults.sprite || 0) * def.capPerMult;
+      n = Math.min(n, cap - state.units.sprite);
+      if (n < 1) return;
+    }
+    if (arg.max) n = maxAffordable(def.base, def.growth, basis, state.teeth);
+    if (!Number.isFinite(n) || n < 1) return;
+    const cost = bulkCost(def.base, def.growth, basis, n);
     if (state.teeth < cost) return;
     state.teeth -= cost;
     state.units[unit] += n;
@@ -56,7 +66,7 @@ export const ACTIONS = {
     if (!UNIT_IDS.includes(unit)) return;
     const tier = multTier(state, unit, cfg);
     if (!tier) return;
-    if (state.units[unit] < tier.threshold) return;
+    if (multOwned(state, unit) < tier.threshold) return;
     if (state.teeth < tier.cost) return;
     state.teeth -= tier.cost;
     state.mults[unit]++;
@@ -103,7 +113,10 @@ export const ACTIONS = {
     bump(state);
   },
 
-  dismissBeat(state) {
+  dismissBeat(state, cfg, arg) {
+    // Guard at the reducer: only the beat actually at the head may be
+    // dismissed, so a double-activation cannot swallow the next beat.
+    if (!arg || state.beatQueue[0] !== arg.id) return;
     const id = state.beatQueue.shift();
     if (!id) return;
     if (!state.beatsSeen.includes(id)) state.beatsSeen.push(id);

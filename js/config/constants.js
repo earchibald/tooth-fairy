@@ -16,7 +16,8 @@ export const DEFAULTS = Object.freeze({
     scout:    Object.freeze({ base: 50,       growth: 1.15, rate: 1,     noise: 0.5 }),
     mouse:    Object.freeze({ base: 600,      growth: 1.14, rate: 10,    noise: 1.5 }),
     sprite:   Object.freeze({ base: 2500,     growth: 1.05, rate: 40,    noise: 6,
-                              lifeTicks: 450, afterglowFrac: 0.5 }),
+                              lifeTicks: 450, afterglowFrac: 0.5,
+                              swarmCap: 8, capPerMult: 4 }),
     phantom:  Object.freeze({ base: 12000,    growth: 1.13, rate: 120,   noise: 0 }),
     ferry:    Object.freeze({ base: 140000,   growth: 1.12, rate: 0,     noise: 0.3,
                               lumpAmount: 12000, lumpEveryTicks: 60, noiseSpike: 6 }),
@@ -60,13 +61,13 @@ export const DEFAULTS = Object.freeze({
 
   BELIEF: Object.freeze({
     START: 50,
-    DRIFT_PER_S: 0.01,   // toward 50
+    DRIFT_PER_S: 0.002,  // toward 50; with the streak this equilibrates at STREAK_CAP
     STREAK_PER_S: 0.05,  // gain while producing quietly
     STREAK_CAP: 75,
     NOTE_VALUE: 2,
   }),
 
-  NOTES: Object.freeze({ EVERY_S: 45 }),
+  NOTES: Object.freeze({ EVERY_S: 45, CAP: 12 }),
 
   TIPTOE: Object.freeze({ FACTOR: 0.5, TICKS: 75, SANDMAN_AT: 85 }),
 

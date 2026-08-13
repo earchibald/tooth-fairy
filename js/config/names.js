@@ -45,6 +45,7 @@ export const NAME_DEFAULTS = Object.freeze({
     settings: 'settings', reset: 'forget everything', resetConfirm: 'type FORGET to confirm',
     exportSave: 'copy the night', importSave: 'restore a night',
     mute: 'hush the sounds', endingContinue: 'the sky keeps filling',
+    wakeAside: 'someone woke. belief slips. {unit} lies low.',
     tiptoeHint: 'half speed, half noise, fifteen seconds. always allowed. never pretty.',
   }),
 });

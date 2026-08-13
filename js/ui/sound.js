@@ -33,6 +33,7 @@ function ensure() {
     master.connect(ctx.destination);
   }
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  master.gain.value = vfx.sound.master; // follow live VFX-tab tuning
   return ctx;
 }
 
