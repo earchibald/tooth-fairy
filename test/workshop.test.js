@@ -5,32 +5,26 @@ import assert from 'node:assert/strict';
 import { makeBatcher, rampFactor, makeParticles } from '../js/ui/juice.js';
 import { buildVfx } from '../js/config/vfx.js';
 
-test('batcher exposes pending pool so the frame loop can keep running', () => {
+test('batcher pools credits and cuts a batch every ticksPerBatch credits', () => {
   const b = makeBatcher(3);
-  assert.equal(b.pending(), false);
   assert.equal(b.credit(5, true), null);
-  assert.equal(b.pending(), true);          // pool holds 5, no batch yet
   assert.equal(b.credit(5, true), null);
   assert.equal(b.credit(5, true), 15);      // third credit cuts the batch
-  assert.equal(b.pending(), false);
   b.credit(2, false);                       // canLaunch false: pool keeps filling
   b.credit(2, false);
-  b.credit(2, false);
-  assert.equal(b.pending(), true);
+  assert.equal(b.credit(2, false), null);   // still blocked at the third tick
+  assert.equal(b.credit(0, true), 6);       // now launchable: pays the pooled 6
 });
 
 test('batcher discard: preview leftovers never leak into real play', () => {
   const b = makeBatcher(3);
   b.credit(5, true);                        // pool holds 5, ticks = 1
   b.credit(5, true);                        // pool holds 10, ticks = 2
-  assert.equal(b.pending(), true);
   b.discard();
-  assert.equal(b.pending(), false);
-  // A subsequent full batch cycle pays only the new credits, no leftovers.
+  // A subsequent full batch cycle pays exactly the new credits, no leftovers.
   assert.equal(b.credit(1, true), null);
   assert.equal(b.credit(1, true), null);
   assert.equal(b.credit(1, true), 3);
-  assert.equal(b.pending(), false);
 });
 
 test('rampFactor: log-linear between anchors, clamped, degenerate-safe', () => {
@@ -132,6 +126,7 @@ test('release runs the step sequence and stops at the first failure', async () =
     assert.equal(out.ok, true);
     assert.equal(out.steps.length, 3);                  // tests, stage, check
     assert.equal(out.steps.at(-1).output, 'nothing to release');
+    assert.equal(out.nothingToRelease, true);
   });
   assert.equal(calls[0][0], 'node');                    // tests first
   assert.ok(!calls.some((c) => c[0] === 'git' && c[1] === 'push'));
@@ -161,6 +156,7 @@ test('release pushes when the diff check reports staged changes', async () => {
     const out = await (await fetch(base + '/api/release', { method: 'POST' })).json();
     assert.equal(out.ok, true);
     assert.equal(out.steps.length, RELEASE_STEPS.length);
+    assert.ok(!out.nothingToRelease);
   });
   assert.ok(calls.some((c) => c[0] === 'git' && c[1] === 'push'));
 });

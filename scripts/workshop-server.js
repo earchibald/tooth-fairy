@@ -101,7 +101,7 @@ export function createWorkshopServer({ root, runner = defaultRunner }) {
             const r = await runner(step.cmd, args, root);
             if (step.checkStopsWhenOk && r.ok) {
               steps.push({ name: step.name, ok: true, output: 'nothing to release' });
-              return json(res, 200, { ok: true, steps });
+              return json(res, 200, { ok: true, steps, nothingToRelease: true });
             }
             if (step.checkStopsWhenOk && !r.ok) {
               steps.push({ name: step.name, ok: true, output: 'changes staged' });

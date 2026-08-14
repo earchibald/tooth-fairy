@@ -14,8 +14,9 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   let w = 0;
   let h = 0;
   let dpr = 1;
-  const sprites = [];        // {born, fromLeft, amount}
+  const sprites = [];        // {born, fromLeft, amount, preview}
   const batcher = makeBatcher(ticksPerBatch);
+  const previewBatcher = makeBatcher(ticksPerBatch);
   const parts = makeParticles();
   let rate = 0;
   let running = false;
@@ -40,6 +41,26 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     ctx2d.globalAlpha = alpha;
     if (fill) { ctx2d.fillStyle = fill; ctx2d.fill(path); }
     else { ctx2d.strokeStyle = vfx.motif.color; ctx2d.lineWidth = 7; ctx2d.stroke(path); }
+    ctx2d.restore();
+  }
+
+  // Inbound sprite draw: one transform setup, two fills (glow ghost under
+  // crisp). Replaces two full drawTooth calls (two save/translate/scale/fill
+  // each) with a single save/translate/scale shared by both passes.
+  function drawInboundSprite(x, y, size, fill, ghostAlpha, ghostBlur, crispAlpha) {
+    ctx2d.save();
+    ctx2d.translate(x - size / 2, y - size / 2);
+    ctx2d.scale(size / 100, size / 100);
+    ctx2d.fillStyle = fill;
+    if (ghostAlpha > 0 && ghostBlur > 0) {
+      ctx2d.shadowColor = vfx.motif.inboundColor;
+      ctx2d.shadowBlur = ghostBlur;
+      ctx2d.globalAlpha = ghostAlpha;
+      ctx2d.fill(path);
+    }
+    ctx2d.shadowBlur = 0;
+    ctx2d.globalAlpha = crispAlpha;
+    ctx2d.fill(path);
     ctx2d.restore();
   }
 
@@ -93,20 +114,13 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const ease = 1 - Math.pow(1 - t, 2.2);
       const startX = s.fromLeft ? -size : w + size;
       const x = startX + (w / 2 - startX) * ease;
-      const gAlpha = vfx.juice.inbound.glowAlpha * ramp('glowHi');
+      const gAlpha = Math.min(1, vfx.juice.inbound.glowAlpha * ramp('glowHi'));
       const gy = y - Math.sin(t * Math.PI) * 7;
       const gSize = size * ramp('sizeHi');
-      if (gAlpha > 0 && vfx.juice.inbound.glowSize > 0) {
-        // Glow ghost pass: shadow-only, alpha scales with the glowAlpha
-        // slider. Drawn first so it never gets overwritten by the crisp pass.
-        ctx2d.save();
-        ctx2d.shadowColor = vfx.motif.inboundColor;
-        ctx2d.shadowBlur = vfx.juice.inbound.glowSize * ramp('glowHi');
-        drawTooth(x, gy, gSize, vfx.motif.inboundColor, gAlpha);
-        ctx2d.restore();
-      }
-      // Crisp tooth always drawn on top, at normal alpha, no shadow.
-      drawTooth(x, gy, gSize, vfx.motif.inboundColor, 0.5 + t * 0.5);
+      // Glow ghost (shadow-only, alpha scales with glowAlpha) drawn under the
+      // crisp tooth in one transform setup — see drawInboundSprite.
+      drawInboundSprite(x, gy, gSize, vfx.motif.inboundColor,
+        gAlpha, vfx.juice.inbound.glowSize * ramp('glowHi'), 0.5 + t * 0.5);
       // Sparkle trail: spawn probabilistically per frame so trailPerS holds.
       const perFrame = (vfx.juice.inbound.trailPerS * ramp('trailHi')) / 60;
       if (Math.random() < perFrame) {
@@ -138,6 +152,17 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       }
       wake();
     },
+    // Workshop preview: identical to credit() but routes through a dedicated
+    // batcher/sprite flag so synthetic flow can never pollute real income —
+    // flush() discards only this batcher and these sprites.
+    creditPreview(amount, now) {
+      if (reducedMotion) { if (onLand) onLand(amount); return; }
+      const batch = previewBatcher.credit(amount, sprites.length < vfx.motif.inboundMax);
+      if (batch != null) {
+        sprites.push({ born: now, fromLeft: (side = !side), amount: batch, preview: true });
+      }
+      wake();
+    },
     tapPulse(now) {
       if (reducedMotion) return;
       parts.spawnRipple(w / 2, h / 2, now, { ms: vfx.juice.tapGlow.ms + 200, size: 46 });
@@ -151,7 +176,15 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     },
     setRate(rps) { rate = rps; },
     redraw: drawStatic,
-    flush() { batcher.discard(); },
+    // Discards only the preview batcher and removes in-flight preview
+    // sprites — mid-flight synthetic teeth vanish on tab close; real pooled
+    // income and real sprites are untouched.
+    flush() {
+      previewBatcher.discard();
+      for (let i = sprites.length - 1; i >= 0; i--) {
+        if (sprites[i].preview) sprites.splice(i, 1);
+      }
+    },
     destroy() { ro.disconnect(); running = false; },
   };
 }

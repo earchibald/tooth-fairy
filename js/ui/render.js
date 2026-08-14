@@ -166,11 +166,17 @@ export function buildUI(app, ctx) {
   });
   settingsBtn.addEventListener('click', () => overlays.openSettings());
 
+  let tapPressTimer = null;
+  function pressTap() {
+    tapBtn.classList.add('pressed');
+    clearTimeout(tapPressTimer);
+    tapPressTimer = setTimeout(() => tapBtn.classList.remove('pressed'), vfx.juice.tapPop.ms);
+  }
+
   const ticksPerBatch = Math.max(1, Math.round(1000 / cfg.TICK_MS));
   const conveyor = createConveyor(conveyorCanvas, vfx, ticksPerBatch, (amount) => {
     spawnFloat('+' + fmt(amount), 0.5);
-    tapBtn.classList.add('pressed');
-    setTimeout(() => tapBtn.classList.remove('pressed'), vfx.juice.tapPop.ms);
+    pressTap();
   });
 
   // ---- floats ----
@@ -286,7 +292,7 @@ export function buildUI(app, ctx) {
 
   return {
     update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs,
-    applyTapVars,
+    applyTapVars, pressTap,
     flashTapGlow() {
       tapBtn.classList.add('glowing');
       clearTimeout(glowTimer);

@@ -3,9 +3,9 @@
 // draw() is the only function that touches a canvas context.
 
 // Pure batching: pools one credit per productive tick and cuts a batch every
-// ticksPerBatch credits. pending() lets the render loop know teeth are still
-// pooled so it never parks with income in flight (a stale direct `pool` read
-// once froze the banner for the session).
+// ticksPerBatch credits. credit()'s wake() call (in the caller) keeps the
+// render loop hot while a batch is pooling — a pending pool by itself must
+// never re-arm the loop.
 export function makeBatcher(ticksPerBatch) {
   let pool = 0;
   let ticks = 0;
@@ -20,7 +20,6 @@ export function makeBatcher(ticksPerBatch) {
       ticks = 0;
       return batch;
     },
-    pending() { return pool > 0; },
     // Preview streams flush their leftovers so a synthetic 1e12 batch never
     // lands on real play.
     discard() { pool = 0; ticks = 0; },

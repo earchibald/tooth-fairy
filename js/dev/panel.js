@@ -360,8 +360,7 @@ function tabWorkshop(body, ctx) {
   const now = () => performance.now();
   const bTap = el('button', null, 'tap');
   bTap.addEventListener('click', () => {
-    ctx.ui.tapBtn.classList.add('pressed');
-    setTimeout(() => ctx.ui.tapBtn.classList.remove('pressed'), ctx.vfx.juice.tapPop.ms);
+    ctx.ui.pressTap();
     ctx.ui.flashTapGlow();
     ctx.ui.conveyor.tapPulse(now());
   });
@@ -377,7 +376,7 @@ function tabWorkshop(body, ctx) {
       const until = now() + 5000;
       flowTimer = setInterval(() => {
         if (now() > until) { clearInterval(flowTimer); return; }
-        ctx.ui.conveyor.credit(rate * 0.2, now());
+        ctx.ui.conveyor.creditPreview(rate * 0.2, now());
       }, 200);
     });
     preview.appendChild(b);
@@ -455,7 +454,7 @@ function tabWorkshop(body, ctx) {
       const out = await post('/api/release');
       const lastOutput = out.steps.at(-1).output || '';
       const suffix = out.ok
-        ? (lastOutput === 'nothing to release' ? ' — nothing to release.' : ' — released.')
+        ? (out.nothingToRelease ? ' — nothing to release.' : ' — released.')
         : ' — stopped: ' + lastOutput.slice(0, 300);
       note.textContent = out.steps.map((s) => `${s.ok ? '✓' : '✗'} ${s.name}`).join('  ') + suffix;
     } catch {

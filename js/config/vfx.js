@@ -17,7 +17,6 @@ export const VFX_DEFAULTS = Object.freeze({
     outlineMs: 1600,      // gentle pulse period of an unfilled outline tooth
     fillMs: 260,          // outline → filled transition
     setFadeMs: 700,       // completed set fade
-    buttonPressMs: 90,
   }),
   floats: Object.freeze({
     dwellMs: 1200, riseGap: 18, maxConcurrent: 3,
