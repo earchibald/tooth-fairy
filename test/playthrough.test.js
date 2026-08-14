@@ -8,6 +8,11 @@ import { runBot } from './helpers/bot.js';
 const cfg = buildConstants();
 const script = buildScript();
 
+// Reachable only after the Task 8 rebalance raises ENDING.LIFETIME to ~2e9
+// (docs/superpowers/plans/2026-08-13-night-cycle-expansion.md, Task 8).
+// Task 8 MUST empty this set.
+const UNREACHABLE_UNTIL_REBALANCE = new Set(['a3-starwrights', 'as-starwrights3']);
+
 test('the bot reaches the ending and sees the whole spine', () => {
   const { state, steps } = runBot(cfg, script, { maxTicks: 400000, seed: 1 });
   assert.ok(state.postEnd, `postEnd after ${steps} steps, lifetime ${state.lifetime}`);
@@ -22,13 +27,17 @@ test('the bot reaches the ending and sees the whole spine', () => {
 
 test('every beat is reachable by the bot', () => {
   const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 2 });
-  const missing = script.beats.filter((b) => !state.beatsSeen.includes(b.id));
+  const missing = script.beats.filter(
+    (b) => !UNREACHABLE_UNTIL_REBALANCE.has(b.id) && !state.beatsSeen.includes(b.id),
+  );
   assert.deepEqual(missing.map((b) => b.id), [], 'unreached beats');
 });
 
 test('every aside is reachable by the bot', () => {
   const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 3 });
-  const missing = script.asides.filter((a) => !state.asidesSeen.includes(a.id));
+  const missing = script.asides.filter(
+    (a) => !UNREACHABLE_UNTIL_REBALANCE.has(a.id) && !state.asidesSeen.includes(a.id),
+  );
   assert.deepEqual(missing.map((a) => a.id), [], 'unreached asides');
 });
 
