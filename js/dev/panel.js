@@ -122,6 +122,9 @@ const CSS = `
 .devTable td, .devTable th { border-bottom: 1px solid #ffffff10;
   padding: 3px 8px; text-align: left; }
 .devTable td.warn { color: #c98b7b; }
+.devPanel--drawer { inset: 0 0 45% 0; border-bottom: 1px solid #ffffff22; }
+.devRow input[type="range"] { flex: 1; min-width: 160px; max-width: 320px; }
+.devRow .val { color: #cfa8ea; min-width: 56px; font-size: 12px; text-align: right; }
 `;
 
 export function mountDevPanel(ctx) {
@@ -151,8 +154,8 @@ function buildPanel(ctx) {
   document.body.appendChild(panel);
 
   const tabs = {
-    Script: tabScript, Balance: tabBalance, Names: tabNames,
-    VFX: tabVfx, State: tabState, Pacing: tabPacing,
+    Workshop: tabWorkshop, Script: tabScript, Balance: tabBalance,
+    Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
   };
   const built = {};
   let active = null;
@@ -177,10 +180,11 @@ function buildPanel(ctx) {
       btn.classList.toggle('on', btn.textContent === name);
     }
     while (body.firstChild) body.removeChild(body.firstChild);
+    panel.classList.toggle('devPanel--drawer', name === 'Workshop');
     onHide = tabs[name](body, ctx) || null;
   }
 
-  show('Script');
+  show('Workshop');
   return {
     toggle() {
       panel.hidden = !panel.hidden;
@@ -299,6 +303,164 @@ function ovBar(body, ctx, note) {
   bar.append(copyAll, reload, clearAll);
   body.appendChild(bar);
   if (note) body.appendChild(el('div', 'devNote', note));
+}
+
+// ---------- Workshop ----------
+// The juice studio: tune the tap button and the banner live, preview
+// without playing, then save the liked values into the repo and release.
+
+const WORKSHOP_KNOBS = [
+  { title: 'tap pop', rows: [
+    { path: ['juice', 'tapPop', 'scale'], min: 0.9, max: 1.8, step: 0.01 },
+    { path: ['juice', 'tapPop', 'ms'], min: 40, max: 500, step: 5 },
+  ] },
+  { title: 'tap glow', rows: [
+    { path: ['juice', 'tapGlow', 'size'], min: 0, max: 60, step: 1 },
+    { path: ['juice', 'tapGlow', 'alpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'tapGlow', 'ms'], min: 60, max: 1200, step: 10 },
+  ] },
+  { title: 'tap sparks', rows: [
+    { path: ['juice', 'tapSparks', 'count'], min: 0, max: 40, step: 1 },
+    { path: ['juice', 'tapSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
+    { path: ['juice', 'tapSparks', 'spreadPx'], min: 6, max: 120, step: 2 },
+    { path: ['juice', 'tapSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
+  ] },
+  { title: 'incoming teeth', rows: [
+    { path: ['juice', 'inbound', 'glowSize'], min: 0, max: 40, step: 1 },
+    { path: ['juice', 'inbound', 'glowAlpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'inbound', 'trailPerS'], min: 0, max: 60, step: 1 },
+    { path: ['juice', 'inbound', 'trailLife'], min: 100, max: 2000, step: 20 },
+  ] },
+  { title: 'landing', rows: [
+    { path: ['juice', 'landSparks', 'count'], min: 0, max: 40, step: 1 },
+    { path: ['juice', 'landSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
+    { path: ['juice', 'landSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
+  ] },
+  { title: 'powerup sweep', rows: [
+    { path: ['juice', 'buySweep', 'alpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'buySweep', 'ms'], min: 200, max: 2500, step: 50 },
+  ] },
+  { title: 'scale ramp', rows: [
+    { path: ['juice', 'ramp', 'rateLo'], min: 1, max: 10000, step: 1 },
+    { path: ['juice', 'ramp', 'rateHi'], min: 1e6, max: 1e12, step: 1e6 },
+    { path: ['juice', 'ramp', 'sizeHi'], min: 1, max: 4, step: 0.05 },
+    { path: ['juice', 'ramp', 'glowHi'], min: 1, max: 6, step: 0.05 },
+    { path: ['juice', 'ramp', 'trailHi'], min: 1, max: 8, step: 0.05 },
+    { path: ['juice', 'ramp', 'scrollHi'], min: 1, max: 10, step: 0.1 },
+  ] },
+];
+
+function tabWorkshop(body, ctx) {
+  body.appendChild(el('div', 'devNote',
+    'the juice studio. sliders apply live and persist like every dev override. ' +
+    'preview fires the real feedback paths; the game stays visible below.'));
+
+  // ---- preview bar ----
+  const preview = el('div', 'devBar');
+  const now = () => performance.now();
+  const bTap = el('button', null, 'tap');
+  bTap.addEventListener('click', () => {
+    ctx.ui.tapBtn.classList.add('pressed');
+    setTimeout(() => ctx.ui.tapBtn.classList.remove('pressed'), ctx.vfx.juice.tapPop.ms);
+    ctx.ui.flashTapGlow();
+    ctx.ui.conveyor.tapPulse(now());
+  });
+  const bBuy = el('button', null, 'powerup');
+  bBuy.addEventListener('click', () => ctx.ui.conveyor.buySweep(now()));
+  preview.append(bTap, bBuy);
+  let flowTimer = null;
+  for (const [label, rate] of [['flow: trickle', 1e2], ['flow: busy', 1e6], ['flow: storm', 1e12]]) {
+    const b = el('button', null, label);
+    b.addEventListener('click', () => {
+      clearInterval(flowTimer);
+      ctx.ui.conveyor.setRate(rate);
+      const until = now() + 5000;
+      flowTimer = setInterval(() => {
+        if (now() > until) { clearInterval(flowTimer); return; }
+        ctx.ui.conveyor.credit(rate * 0.2, now());
+      }, 200);
+    });
+    preview.appendChild(b);
+  }
+  body.append(el('h3', null, 'preview'), preview);
+
+  // ---- sliders ----
+  const ov = loadOv('vfx');
+  for (const group of WORKSHOP_KNOBS) {
+    body.appendChild(el('h3', null, group.title));
+    for (const knob of group.rows) {
+      const defVal = getPath(VFX_DEFAULTS, knob.path);
+      const row = el('div', 'devRow');
+      row.appendChild(el('span', 'path', knob.path[knob.path.length - 1]));
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(knob.min);
+      input.max = String(knob.max);
+      input.step = String(knob.step);
+      const current = getPath(ctx.vfx, knob.path);
+      input.value = String(current);
+      const val = el('span', 'val', String(current));
+      const def = el('span', 'def', 'default ' + defVal);
+      const reset = el('button', 'mini', 'reset');
+      row.append(input, val, def, reset);
+      row.classList.toggle('changed', current !== defVal);
+      function apply(value) {
+        setPath(ctx.vfx, knob.path, value);
+        if (value === defVal) deletePath(ov, knob.path);
+        else setPath(ov, knob.path, value);
+        saveOv('vfx', ov);
+        val.textContent = String(value);
+        row.classList.toggle('changed', value !== defVal);
+        ctx.ui.applyTapVars();
+      }
+      input.addEventListener('input', () => apply(Number(input.value)));
+      reset.addEventListener('click', () => { input.value = String(defVal); apply(defVal); });
+      body.appendChild(row);
+    }
+  }
+
+  // ---- save / release ----
+  body.appendChild(el('h3', null, 'ship it'));
+  const shipBar = el('div', 'devBar');
+  const note = el('div', 'devNote', '');
+  const save = el('button', null, 'save to project');
+  const release = el('button', null, 'release');
+  release.disabled = true;
+  async function post(url, bodyObj) {
+    const res = await fetch(url, { method: 'POST', body: bodyObj ? JSON.stringify(bodyObj) : '{}' });
+    if (res.status === 501 || res.status === 405 && !res.headers.get('content-type')?.includes('json')) {
+      throw new Error('no api');
+    }
+    if (!res.headers.get('content-type')?.includes('json')) throw new Error('no api');
+    return res.json();
+  }
+  save.addEventListener('click', async () => {
+    save.textContent = 'saving…';
+    try {
+      const vfxOv = loadOv('vfx');
+      if (!Object.keys(vfxOv).length) { note.textContent = 'nothing changed — move a slider first.'; return; }
+      const out = await post('/api/save-vfx', { vfx: vfxOv });
+      if (out.ok) {
+        note.textContent = 'saved to ' + out.file + '. release pushes it live.';
+        release.disabled = false;
+      } else note.textContent = 'save failed: ' + (out.error || 'unknown');
+    } catch {
+      note.textContent = 'no workshop server. run: node scripts/workshop-server.js';
+    } finally { save.textContent = 'save to project'; }
+  });
+  release.addEventListener('click', async () => {
+    release.textContent = 'releasing…';
+    release.disabled = true;
+    try {
+      const out = await post('/api/release');
+      note.textContent = out.steps.map((s) => `${s.ok ? '✓' : '✗'} ${s.name}`).join('  ') +
+        (out.ok ? ' — released.' : ' — stopped: ' + (out.steps.at(-1).output || '').slice(0, 300));
+    } catch {
+      note.textContent = 'no workshop server. run: node scripts/workshop-server.js';
+    } finally { release.textContent = 'release'; release.disabled = false; }
+  });
+  shipBar.append(save, release);
+  body.append(shipBar, note);
 }
 
 // ---------- Script ----------
