@@ -19,6 +19,20 @@ test('batcher exposes pending pool so the frame loop can keep running', () => {
   assert.equal(b.pending(), true);
 });
 
+test('batcher discard: preview leftovers never leak into real play', () => {
+  const b = makeBatcher(3);
+  b.credit(5, true);                        // pool holds 5, ticks = 1
+  b.credit(5, true);                        // pool holds 10, ticks = 2
+  assert.equal(b.pending(), true);
+  b.discard();
+  assert.equal(b.pending(), false);
+  // A subsequent full batch cycle pays only the new credits, no leftovers.
+  assert.equal(b.credit(1, true), null);
+  assert.equal(b.credit(1, true), null);
+  assert.equal(b.credit(1, true), 3);
+  assert.equal(b.pending(), false);
+});
+
 test('rampFactor: log-linear between anchors, clamped, degenerate-safe', () => {
   assert.equal(rampFactor(0, 10, 1e9, 3), 1);
   assert.equal(rampFactor(-5, 10, 1e9, 3), 1);

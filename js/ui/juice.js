@@ -21,6 +21,9 @@ export function makeBatcher(ticksPerBatch) {
       return batch;
     },
     pending() { return pool > 0; },
+    // Preview streams flush their leftovers so a synthetic 1e12 batch never
+    // lands on real play.
+    discard() { pool = 0; ticks = 0; },
   };
 }
 

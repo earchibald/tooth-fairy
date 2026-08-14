@@ -94,16 +94,19 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const startX = s.fromLeft ? -size : w + size;
       const x = startX + (w / 2 - startX) * ease;
       const gAlpha = vfx.juice.inbound.glowAlpha * ramp('glowHi');
+      const gy = y - Math.sin(t * Math.PI) * 7;
+      const gSize = size * ramp('sizeHi');
       if (gAlpha > 0 && vfx.juice.inbound.glowSize > 0) {
+        // Glow ghost pass: shadow-only, alpha scales with the glowAlpha
+        // slider. Drawn first so it never gets overwritten by the crisp pass.
         ctx2d.save();
         ctx2d.shadowColor = vfx.motif.inboundColor;
         ctx2d.shadowBlur = vfx.juice.inbound.glowSize * ramp('glowHi');
-        ctx2d.globalAlpha = gAlpha;
-        drawTooth(x, y - Math.sin(t * Math.PI) * 7, size * ramp('sizeHi'), vfx.motif.inboundColor, Math.min(1, 0.5 + t * 0.5));
+        drawTooth(x, gy, gSize, vfx.motif.inboundColor, gAlpha);
         ctx2d.restore();
-      } else {
-        drawTooth(x, y - Math.sin(t * Math.PI) * 7, size * ramp('sizeHi'), vfx.motif.inboundColor, 0.5 + t * 0.5);
       }
+      // Crisp tooth always drawn on top, at normal alpha, no shadow.
+      drawTooth(x, gy, gSize, vfx.motif.inboundColor, 0.5 + t * 0.5);
       // Sparkle trail: spawn probabilistically per frame so trailPerS holds.
       const perFrame = (vfx.juice.inbound.trailPerS * ramp('trailHi')) / 60;
       if (Math.random() < perFrame) {
@@ -112,7 +115,10 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       }
     }
     parts.draw(ctx2d, now, colors(), w, h);
-    if (sprites.length || batcher.pending() || parts.step(now) > 0) requestAnimationFrame(frame);
+    // A pooled mid-batch credit does not by itself keep frames hot: nothing
+    // drains the pool except a future credit(), which already calls wake().
+    // A pending pool alone must never re-arm this loop.
+    if (sprites.length || parts.step(now) > 0) requestAnimationFrame(frame);
     else { running = false; drawStatic(); }
   }
 
@@ -145,6 +151,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     },
     setRate(rps) { rate = rps; },
     redraw: drawStatic,
+    flush() { batcher.discard(); },
     destroy() { ro.disconnect(); running = false; },
   };
 }

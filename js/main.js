@@ -107,7 +107,7 @@ ui.tapBtn.addEventListener('pointerdown', (e) => {
 function doTap() {
   if (dispatch('tap')) {
     ui.tapBtn.classList.add('pressed');
-    setTimeout(() => ui.tapBtn.classList.remove('pressed'), vfx.pulse.buttonPressMs);
+    setTimeout(() => ui.tapBtn.classList.remove('pressed'), vfx.juice.tapPop.ms);
   }
   // A refused tap is silent: sound rides the sfx queue, which only fills on effect.
 }

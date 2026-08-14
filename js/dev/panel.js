@@ -316,7 +316,7 @@ const WORKSHOP_KNOBS = [
   ] },
   { title: 'tap glow', rows: [
     { path: ['juice', 'tapGlow', 'size'], min: 0, max: 60, step: 1 },
-    { path: ['juice', 'tapGlow', 'alpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'tapGlow', 'alpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'tapGlow', 'ms'], min: 60, max: 1200, step: 10 },
   ] },
   { title: 'tap sparks', rows: [
@@ -327,7 +327,7 @@ const WORKSHOP_KNOBS = [
   ] },
   { title: 'incoming teeth', rows: [
     { path: ['juice', 'inbound', 'glowSize'], min: 0, max: 40, step: 1 },
-    { path: ['juice', 'inbound', 'glowAlpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'inbound', 'glowAlpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'inbound', 'trailPerS'], min: 0, max: 60, step: 1 },
     { path: ['juice', 'inbound', 'trailLife'], min: 100, max: 2000, step: 20 },
   ] },
@@ -337,7 +337,7 @@ const WORKSHOP_KNOBS = [
     { path: ['juice', 'landSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
   ] },
   { title: 'powerup sweep', rows: [
-    { path: ['juice', 'buySweep', 'alpha'], min: 0, max: 1, step: 0.02 },
+    { path: ['juice', 'buySweep', 'alpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'buySweep', 'ms'], min: 200, max: 2500, step: 50 },
   ] },
   { title: 'scale ramp', rows: [
@@ -453,14 +453,23 @@ function tabWorkshop(body, ctx) {
     release.disabled = true;
     try {
       const out = await post('/api/release');
-      note.textContent = out.steps.map((s) => `${s.ok ? '✓' : '✗'} ${s.name}`).join('  ') +
-        (out.ok ? ' — released.' : ' — stopped: ' + (out.steps.at(-1).output || '').slice(0, 300));
+      const lastOutput = out.steps.at(-1).output || '';
+      const suffix = out.ok
+        ? (lastOutput === 'nothing to release' ? ' — nothing to release.' : ' — released.')
+        : ' — stopped: ' + lastOutput.slice(0, 300);
+      note.textContent = out.steps.map((s) => `${s.ok ? '✓' : '✗'} ${s.name}`).join('  ') + suffix;
     } catch {
       note.textContent = 'no workshop server. run: node scripts/workshop-server.js';
     } finally { release.textContent = 'release'; release.disabled = false; }
   });
   shipBar.append(save, release);
   body.append(shipBar, note);
+
+  return () => {
+    clearInterval(flowTimer);
+    ctx.ui.conveyor.setRate(0);
+    ctx.ui.conveyor.flush();
+  };
 }
 
 // ---------- Script ----------
