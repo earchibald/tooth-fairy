@@ -146,7 +146,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     // batch window of income and its landing float matches the rate readout.
     credit(amount, now) {
       if (reducedMotion) { if (onLand) onLand(amount); return; }
-      const batch = batcher.credit(amount, sprites.length < vfx.motif.inboundMax);
+      const realSpriteCount = sprites.filter(s => !s.preview).length;
+      const batch = batcher.credit(amount, realSpriteCount < vfx.motif.inboundMax);
       if (batch != null) {
         sprites.push({ born: now, fromLeft: (side = !side), amount: batch });
       }
@@ -154,10 +155,12 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     },
     // Workshop preview: identical to credit() but routes through a dedicated
     // batcher/sprite flag so synthetic flow can never pollute real income —
-    // flush() discards only this batcher and these sprites.
+    // flush() discards only this batcher and these sprites. Preview and real
+    // launches never contend for slots — each maintains its own cap.
     creditPreview(amount, now) {
       if (reducedMotion) { if (onLand) onLand(amount); return; }
-      const batch = previewBatcher.credit(amount, sprites.length < vfx.motif.inboundMax);
+      const previewSpriteCount = sprites.filter(s => s.preview).length;
+      const batch = previewBatcher.credit(amount, previewSpriteCount < vfx.motif.inboundMax);
       if (batch != null) {
         sprites.push({ born: now, fromLeft: (side = !side), amount: batch, preview: true });
       }
