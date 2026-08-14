@@ -45,7 +45,12 @@ function sanitizeQueue(state) {
 }
 sanitizeQueue(box.state);
 
+// Reset must win the race against the exit hooks: location.reload() fires
+// pagehide, whose save() would write the just-forgotten state straight back.
+let resetting = false;
+
 function save() {
+  if (resetting) return;
   try { localStorage.setItem('tf-save', serialize(box.state)); } catch { /* storage full */ }
 }
 
@@ -60,7 +65,11 @@ const ui = buildUI(app, {
   dispatch,
   getState: () => box.state,
   loadState: (s) => { sanitizeQueue(s); box.state = s; save(); },
-  resetGame: () => { localStorage.removeItem('tf-save'); location.reload(); },
+  resetGame: () => {
+    resetting = true;
+    localStorage.removeItem('tf-save');
+    location.reload();
+  },
   onBeatDismissed: () => { save(); },
   onCeremony: () => { play.buy(); },
 });
