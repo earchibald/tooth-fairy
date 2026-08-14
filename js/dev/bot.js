@@ -16,6 +16,19 @@ const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
   'notary', 'annexforms', 'moonclippers'];
 const SKY_PRIORITY = ['mouseletter', 'oldroads', 'packedlight', 'lullabythread', 'starcharts', 'ferrytoken'];
 
+const TRACE_PRIORITY = ['littlest', 'fieldmouse', 'quietloom', 'ferryman', 'toothfairy'];
+
+// Leftover stars go into figures, cheapest story first. Exported so tests
+// can prove the policy without a full multi-town run.
+export function botTrace(state, cfg) {
+  for (const id of TRACE_PRIORITY) {
+    while (state.stars >= 1 &&
+           (state.constellations[id] || 0) < cfg.CONSTELLATIONS[id].slots) {
+      dispatch(state, cfg, 'traceStar', { id });
+    }
+  }
+}
+
 // When run with { prestige: true }, on postEnd the bot buys affordable sky
 // cards in priority order, then departs. departTown returns a brand-new
 // state object (it cannot be swapped in place), so runBot's loop adopts it:
@@ -40,6 +53,7 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
           for (const id2 of SKY_PRIORITY) {
             if (!state.sky[id2] && state.stars >= cfg.SKY[id2].cost) dispatch(state, cfg, 'buySky', { id: id2 });
           }
+          botTrace(state, cfg);
           events.push(`(town ${state.town} done: +${starsAtLifetime(state.lifetime, cfg)} stars)`);
           const next = departTown(state, cfg);
           if (next) state = next;

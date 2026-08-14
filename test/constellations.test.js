@@ -10,6 +10,7 @@ import { tapPower, noiseLevel, skyMult } from '../js/engine/predicates.js';
 import { tick } from '../js/engine/tick.js';
 import { buildScript } from '../js/config/script.js';
 import { buildContracts } from '../js/config/contracts.js';
+import { botTrace } from '../js/dev/bot.js';
 
 const cfg = buildConstants();
 
@@ -158,4 +159,14 @@ test('trace and figure triggers fire from synthetic records', () => {
   s.constellations.littlest = cfg.CONSTELLATIONS.littlest.slots;
   tick(s, cfg, synth, {});
   assert.ok(s.beatQueue.includes('syn-figure'));
+});
+
+test('botTrace spends leftover stars cheapest-figure-first', () => {
+  const s = createState(1);
+  s.stars = 12;
+  botTrace(s, cfg);
+  assert.equal(s.constellations.littlest, cfg.CONSTELLATIONS.littlest.slots);   // 4
+  assert.equal(s.constellations.fieldmouse, cfg.CONSTELLATIONS.fieldmouse.slots); // 6
+  assert.equal(s.constellations.quietloom, 2);                                  // remainder
+  assert.equal(s.stars, 0);
 });

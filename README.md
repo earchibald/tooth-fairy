@@ -35,6 +35,11 @@ every town that follows. The sky shop for spending stars sits at the top of
 the roost tab. Town 2 and beyond start at act 1, carrying that production
 bonus forward from the start.
 
+Stars have a second home: **the sky** tab appears once you have earned any.
+Trace them into five constellation figures — a finished figure permanently
+changes the rules (faster taps, quieter crew, shorter dawns, brighter stars,
+and one extra star every departure) and is drawn into the ending sky.
+
 ## Run
 
 ```
