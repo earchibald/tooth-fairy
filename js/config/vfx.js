@@ -1,6 +1,8 @@
 // Visual & audio tuning. The dev panel's VFX tab edits an override layer.
 // Times are milliseconds (perception gaps must not move with the tick rate).
 
+import { TUNED } from './tuned.js';
+
 export const VFX_DEFAULTS = Object.freeze({
   motif: Object.freeze({
     toothPx: 26,          // motif tooth height on the strip
@@ -91,5 +93,5 @@ function merge(defaults, overrides) {
 }
 
 export function buildVfx(overrides) {
-  return merge(VFX_DEFAULTS, overrides);
+  return merge(merge(VFX_DEFAULTS, TUNED), overrides);
 }

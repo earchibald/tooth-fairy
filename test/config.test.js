@@ -8,7 +8,8 @@ import { buildConstants } from '../js/config/constants.js';
 import { buildNames } from '../js/config/names.js';
 import { buildScript } from '../js/config/script.js';
 import { buildContracts } from '../js/config/contracts.js';
-import { buildVfx } from '../js/config/vfx.js';
+import { buildVfx, VFX_DEFAULTS } from '../js/config/vfx.js';
+import { TUNED } from '../js/config/tuned.js';
 
 test('every config module imports and builds', () => {
   const cfg = buildConstants();
@@ -42,4 +43,16 @@ test('every config module imports and builds', () => {
     assert.ok(beat, `beat ${id} missing`);
     assert.equal(beat.minTown, 2, `beat ${id} must carry minTown 2`);
   }
+
+  assert.ok(TUNED && typeof TUNED === 'object' && !Array.isArray(TUNED));
+  // Tuned values sit between code defaults and local overrides; stale keys
+  // are dropped by the merge, never invented.
+  const everyKey = (def, built) => {
+    for (const k of Object.keys(def)) {
+      assert.ok(k in built, `buildVfx dropped ${k}`);
+      if (def[k] && typeof def[k] === 'object' && !Array.isArray(def[k])) everyKey(def[k], built[k]);
+    }
+  };
+  everyKey(VFX_DEFAULTS, buildVfx());
+  assert.ok(!('bogusKey' in buildVfx({ bogusKey: 1 })));
 });
