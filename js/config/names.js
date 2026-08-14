@@ -48,6 +48,7 @@ export const NAME_DEFAULTS = Object.freeze({
   verbs: Object.freeze({
     tiptoe: 'TIPTOE', readNote: 'READ A NOTE', journal: 'JOURNAL',
   }),
+  tabs: Object.freeze({ tonight: 'tonight', log: 'the log', roost: 'the roost' }),
   meters: Object.freeze({
     teeth: 'TEETH', notes: 'notes', belief: 'BELIEF', stir: 'STIR',
     noise: 'noise', hush: 'hush',

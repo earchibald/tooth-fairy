@@ -9,6 +9,7 @@ import { createStage } from './stage.js';
 import { createRoost } from './roost.js';
 import { createOverlays } from './overlays.js';
 import { createConveyor } from './conveyor.js';
+import { createTabs } from './tabs.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -62,9 +63,16 @@ export function buildUI(app, ctx) {
   topbar.append(beliefMeter, stirMeter, spacer, notesChip, journalBtn, settingsBtn);
   app.appendChild(topbar);
 
+  // ---- tabs ----
+  const tabs = createTabs(app, names);
+  app.appendChild(tabs.bar);
+  app.appendChild(tabs.panels.tonight);
+  app.appendChild(tabs.panels.log);
+  app.appendChild(tabs.panels.roost);
+
   // ---- stage ----
   const stageEl = el('main');
-  app.appendChild(stageEl);
+  tabs.panels.tonight.appendChild(stageEl);
   const stage = createStage(stageEl, {
     vfx,
     script: ctx.script,
@@ -76,9 +84,12 @@ export function buildUI(app, ctx) {
     onOrphan: (id) => { dispatch('dismissBeat', { id }); },
   });
 
+  // ---- the log (placeholder until task 11) ----
+  tabs.panels.log.appendChild(el('h2', 'logPlaceholder', names.tabs.log));
+
   // ---- roost ----
   const roostEl = el('section');
-  app.appendChild(roostEl);
+  tabs.panels.roost.appendChild(roostEl);
   const roost = createRoost(roostEl, {
     cfg, names, vfx, dispatch, onCeremony: ctx.onCeremony,
   });
@@ -141,6 +152,7 @@ export function buildUI(app, ctx) {
   const set = (k, v, fn) => { if (cache[k] !== v) { cache[k] = v; fn(v); } };
 
   function update(state) {
+    if (state.beatQueue.length && tabs.active() !== 'tonight') tabs.show('tonight');
     const palette = vfx.palettes[state.act] || vfx.palettes[0];
     set('act', state.act, () => {
       app.dataset.act = String(state.act);
@@ -189,5 +201,5 @@ export function buildUI(app, ctx) {
     roost.update(state);
   }
 
-  return { update, stage, roost, overlays, conveyor, tapBtn, spawnFloat };
+  return { update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs };
 }

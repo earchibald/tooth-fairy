@@ -150,7 +150,7 @@ function drainSfx() {
         if (aside) ui.stage.aside(aside.text);
         break;
       }
-      case 'reveal': break;    // the roost handles arrival ceremony
+      case 'reveal': ui.tabs.setBadge('roost', true); break; // dot the roost tab; the roost itself handles arrival ceremony
       case 'ferry': break;     // the conveyor lump is the feedback
       case 'expire': break;
       default: break;
@@ -193,6 +193,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---- keyboard ----
+const TAB_ORDER = ['tonight', 'log', 'roost'];
+function cycle(d) {
+  const i = TAB_ORDER.indexOf(ui.tabs.active());
+  ui.tabs.show(TAB_ORDER[(i + d + 3) % 3]);
+}
 document.addEventListener('keydown', (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
@@ -218,6 +223,8 @@ document.addEventListener('keydown', (e) => {
         : ui.overlays.openJournal(box.state, script);
       break;
     case 'Escape': ui.overlays.closeAll(); break;
+    case '[': cycle(-1); break;
+    case ']': cycle(1); break;
     default:
       if (e.key >= '1' && e.key <= '9') ui.roost.pressKey(Number(e.key));
   }
