@@ -25,7 +25,7 @@ test('the bot reaches the ending and sees the whole spine', () => {
 test('every beat is reachable by the bot', () => {
   const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 2, contracts });
   // Town-gated beats (minTown > 1) need a two-town run to fire; the
-  // two-town prestige playthrough test (arriving in Task 6) covers them.
+  // two-town prestige playthrough test (test/prestige.test.js) covers them.
   const missing = script.beats.filter((b) => b.trigger.type !== 'never'
     && !(b.minTown > 1) && !state.beatsSeen.includes(b.id));
   assert.deepEqual(missing.map((b) => b.id), [], 'unreached beats');
@@ -34,7 +34,7 @@ test('every beat is reachable by the bot', () => {
 test('every aside is reachable by the bot', () => {
   const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 3, contracts });
   // Town-gated asides (minTown > 1) need a two-town run to fire; the
-  // two-town prestige playthrough test (arriving in Task 6) covers them.
+  // two-town prestige playthrough test (test/prestige.test.js) covers them.
   const missing = script.asides.filter((a) => !(a.minTown > 1) && !state.asidesSeen.includes(a.id));
   assert.deepEqual(missing.map((a) => a.id), [], 'unreached asides');
 });

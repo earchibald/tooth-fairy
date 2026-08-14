@@ -3,10 +3,10 @@
 // Policy: hoard toward the best revealed tier; trickle cheap buys under 25%
 // of the bank; tiptoe early but not forever; read every note.
 
-import { createState } from '../engine/state.js';
+import { createState, departTown } from '../engine/state.js';
 import { dispatch } from '../engine/actions.js';
 import { tick, runOffline } from '../engine/tick.js';
-import { nextCost } from '../engine/math.js';
+import { nextCost, starsAtLifetime } from '../engine/math.js';
 
 const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl',
   'phantom', 'sprite', 'bunny', 'mouse', 'scout'];
@@ -14,9 +14,14 @@ const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
   'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract',
   'sockradar', 'madrid', 'encore', 'feltslippers', 'lighthouse', 'manifestii',
   'notary', 'annexforms', 'moonclippers'];
+const SKY_PRIORITY = ['mouseletter', 'oldroads', 'packedlight', 'lullabythread', 'starcharts', 'ferrytoken'];
 
-export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick, contracts } = {}) {
-  const state = createState(seed);
+// When run with { prestige: true }, on postEnd the bot buys affordable sky
+// cards in priority order, then departs. departTown returns a brand-new
+// state object (it cannot be swapped in place), so runBot's loop adopts it:
+// `const next = departTown(...); if (next) state = next;`.
+export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick, contracts, prestige = false } = {}) {
+  let state = createState(seed);
   const events = [];
   let steps = 0;
   while (steps < maxTicks) {
@@ -31,6 +36,15 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
         // Give the engine one more tick so an afterBeat-chained beat
         // (e.g. end-town after end-sky) gets queued before we stop.
         tick(state, cfg, script, { contracts });
+        if (prestige && state.postEnd && !state.beatQueue.length) {
+          for (const id2 of SKY_PRIORITY) {
+            if (!state.sky[id2] && state.stars >= cfg.SKY[id2].cost) dispatch(state, cfg, 'buySky', { id: id2 });
+          }
+          events.push(`(town ${state.town} done: +${starsAtLifetime(state.lifetime, cfg)} stars)`);
+          const next = departTown(state, cfg);
+          if (next) state = next;
+          continue;
+        }
         if (!state.beatQueue.length) break;
       }
       continue; // the game pauses while a beat is open
