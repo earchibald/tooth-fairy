@@ -11,7 +11,9 @@ import { nextCost } from '../engine/math.js';
 const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl',
   'phantom', 'sprite', 'bunny', 'mouse', 'scout'];
 const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
-  'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract'];
+  'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract',
+  'sockradar', 'madrid', 'encore', 'feltslippers', 'lighthouse', 'manifestii',
+  'notary', 'annexforms', 'moonclippers'];
 
 export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick, contracts } = {}) {
   const state = createState(seed);

@@ -50,12 +50,17 @@ export const ACTIONS = {
       if (n < 1) return;
     }
     if (arg.max) n = maxAffordable(def.base, def.growth, basis, state.teeth);
+    if (unit === 'pact' && state.nightShown) {
+      if (state.pactsTonight >= 1) return;
+      n = 1;                       // a signature is a ceremony, not a bulk buy
+    }
     if (!Number.isFinite(n) || n < 1) return;
     const cost = bulkCost(def.base, def.growth, basis, n);
     if (state.teeth < cost) return;
     state.teeth -= cost;
     state.units[unit] += n;
     state.buys[unit] += n;
+    if (unit === 'pact' && state.nightShown) state.pactsTonight += n;
     if (unit === 'sprite') {
       const life = Math.round(def.lifeTicks * (state.upgrades.encore ? cfg.UPGRADES.encore.spriteLifeMult : 1));
       for (let i = 0; i < n; i++) state.spriteExpiries.push(state.tick + life);

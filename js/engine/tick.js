@@ -81,6 +81,7 @@ function toDusk(state, cfg, offline, contracts) {
   state.nightPhase = 'night';
   state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
   state.nightStats = { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 };
+  state.pactsTonight = 0;
   drawBoard(state, cfg, contracts);
   if (!offline) state.sfx.push({ type: 'dusk' });
 }

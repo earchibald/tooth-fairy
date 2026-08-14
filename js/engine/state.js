@@ -74,6 +74,7 @@ export function createState(seed = 1) {
     nightTicksLeft: 0,          // set from cfg at reveal and at each dusk
     duskGapS: 0,
     nightStats: { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 },
+    pactsTonight: 0,           // a signature is a ceremony, not a bulk buy: max 1/night
     nightLedger: [],
     sailings: 0,                // lifetime completed sailings (river act)
     bargeManifest: 0,           // teeth logged for the barge this night

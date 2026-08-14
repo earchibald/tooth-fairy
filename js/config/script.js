@@ -153,10 +153,10 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'up.', trigger: { type: 'buy', unit: 'starwrights', count: 1 } },
     { id: 'a3-almost', act: 3, register: 'memory',
       text: "i'm near the bottom of the ledger now. the oldest page. my handwriting, but smaller. a name i almost say out loud.",
-      response: '...', trigger: { type: 'lifetime', value: 5000000, minAct: 3 } },
+      response: '...', trigger: { type: 'lifetime', value: 200000000, minAct: 3 } },
     { id: 'a3-firstpage', act: 3, register: 'memory',
       text: 'found it. the first entry. one tooth. one coin. one kid who grew up and — oh. oh. that is who signs the pacts now.',
-      response: 'full circle', trigger: { type: 'lifetime', value: 20000000, minAct: 3 } },
+      response: 'full circle', trigger: { type: 'lifetime', value: 800000000, minAct: 3 } },
 
     // ---- ENDING ----
     { id: 'end-remember', act: 3, register: 'memory',

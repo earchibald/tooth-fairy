@@ -25,9 +25,9 @@ export const DEFAULTS = Object.freeze({
                               lumpAmount: 12000, lumpEveryTicks: 60, noiseSpike: 6 }),
     barge:    Object.freeze({ base: 400000,   growth: 1.18, rate: 0,     noise: 0.5,
                               manifestFrac: 0.05, manifestCap: 0.25 }),
-    pact:     Object.freeze({ base: 1.2e6,    growth: 1.15, rate: 6000,  noise: 0,
+    pact:     Object.freeze({ base: 1.2e6,    growth: 1.22, rate: 6000,  noise: 0,
                               stirFactor: 0.96, netBonusPer: 0.01, netBonusCap: 3 }),
-    ministry: Object.freeze({ base: 8e6,      growth: 1.15, rate: 60000, noise: 0 }),
+    ministry: Object.freeze({ base: 40e6,     growth: 1.22, rate: 60000, noise: 0 }),
     starwrights: Object.freeze({ base: 4e8,   growth: 1.25, rate: 1e6,   noise: 0 }),
   }),
 
@@ -87,7 +87,7 @@ export const DEFAULTS = Object.freeze({
 
   OFFLINE: Object.freeze({ MAX_STEPS: 10000 }),
 
-  ENDING: Object.freeze({ LIFETIME: 50e6 }),
+  ENDING: Object.freeze({ LIFETIME: 6e11 }),
 
   OUTLINE: Object.freeze({
     MAX_SIZE: 64,          // stage outline sets double up to this

@@ -179,3 +179,17 @@ test('manifestii doubles the barge manifest share within the clamp', () => {
   const frac = Math.min(cfg.UNITS.barge.manifestCap, cfg.UNITS.barge.manifestFrac * 2 * cfg.UPGRADES.manifestii.manifestMult);
   assert.ok(Math.abs((s.teeth - before) - manifest * frac) < 10);
 });
+
+test('only one pact signs per night', () => {
+  const s = nightPlaying();
+  s.act = 3;
+  s.revealed['unit:pact'] = true;
+  s.teeth = 1e12;
+  assert.ok(dispatch(s, cfg, 'buyUnit', { unit: 'pact' }));
+  assert.equal(dispatch(s, cfg, 'buyUnit', { unit: 'pact' }), false, 'second refuses');
+  const gapAndNight = cfg.NIGHT.LENGTH_TICKS +
+    Math.ceil(cfg.NIGHT.MIN_GAP_S / (cfg.TICK_MS / 1000)) + 4;
+  s.units.scout = 1; s.buys.scout = 1;      // burn the night productively
+  for (let i = 0; i < gapAndNight; i++) tick(s, cfg, noStory);
+  assert.ok(dispatch(s, cfg, 'buyUnit', { unit: 'pact' }), 'new night, new signature');
+});
