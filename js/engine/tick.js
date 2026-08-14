@@ -7,6 +7,7 @@ import {
   noiseLevel, hushCapacity, revealChecks,
 } from './predicates.js';
 import { UNIT_IDS } from './state.js';
+import { completeOutlineSet } from './actions.js';
 
 function triggerMet(state, cfg, trig) {
   switch (trig.type) {
@@ -82,6 +83,23 @@ export function tick(state, cfg, script, opts) {
     state.teeth += produced;
     state.lifetime += produced;
     if (!offline) state.sfx.push({ type: 'income', amount: produced });
+  }
+
+  // Helpers fill the stage outline too: each whole automated tooth fills a
+  // slot, capped per tick so a huge rate reads as a steady pour, not a strobe.
+  // Excess whole teeth are dropped — the fill is feedback, not a ledger.
+  if (!offline && produced > 0 && state.tapShown && !state.ended) {
+    state.outlineAccum += produced;
+    let fill = Math.floor(state.outlineAccum);
+    state.outlineAccum -= fill;
+    fill = Math.min(fill, cfg.OUTLINE.HELPER_FILL_CAP);
+    while (fill > 0) {
+      const take = Math.min(fill, state.outline.size - state.outline.filled);
+      state.outline.filled += take;
+      fill -= take;
+      if (state.outline.filled >= state.outline.size) completeOutlineSet(state, cfg);
+      else if (take === 0) break;
+    }
   }
 
   // Notes accrue while the operation moves.

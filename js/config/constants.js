@@ -75,7 +75,10 @@ export const DEFAULTS = Object.freeze({
 
   ENDING: Object.freeze({ LIFETIME: 50e6 }),
 
-  OUTLINE: Object.freeze({ MAX_SIZE: 64 }), // stage outline sets double up to this
+  OUTLINE: Object.freeze({
+    MAX_SIZE: 64,          // stage outline sets double up to this
+    HELPER_FILL_CAP: 6,    // max outline slots automated income fills per tick
+  }),
 });
 
 // Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the

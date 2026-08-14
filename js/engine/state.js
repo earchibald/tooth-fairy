@@ -52,6 +52,7 @@ export function createState(seed = 1) {
     counterShown: false,
 
     outline: { size: 1, filled: 0, setsDone: 0 },
+    outlineAccum: 0,            // fractional helper teeth waiting to fill an outline slot
 
     beatsSeen: [],
     beatQueue: [],

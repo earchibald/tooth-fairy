@@ -55,3 +55,13 @@ The design spec lives at `docs/superpowers/specs/2026-08-13-tooth-fairy-design.m
 The research vein it mines is the alignment-issues project's distilled
 incremental-game research (guardrails, Ten Laws, sawtooth pacing,
 override-layer devtools).
+
+## Sound credits
+
+The tap sound is a recorded clip; everything else is synthesized WebAudio.
+
+| Clip | Source | Author | License |
+|------|--------|--------|---------|
+| `assets/microtick.wav` | https://freesound.org/s/481984/ | Saltbearer | Creative Commons 0 |
+
+The credit also appears in-game under settings → acknowledgements.

@@ -8,7 +8,6 @@ export const VFX_DEFAULTS = Object.freeze({
     scrollPxPerS: 8,      // idle drift of the background motif
     inboundMs: 1400,      // an incoming tooth's travel time edge → button
     inboundMax: 12,       // max concurrent inbound sprites; excess batches
-    batchWindowMs: 500,   // credited teeth pooled into one sprite per window at high rates
     color: '#7b96c9',     // muted cornflower
     inboundColor: '#a8c0ea',
   }),
@@ -40,7 +39,9 @@ export const VFX_DEFAULTS = Object.freeze({
   }),
   sound: Object.freeze({
     master: 0.5,
-    tap: 0.02, fill: 0.03, beat: 0.035, buy: 0.03, wake: 0.05, note: 0.03,
+    // tap rides the recorded microtick clip (raw peak 1.24); through the 0.5
+    // master this lands at the edge-of-noticeable level the clip shipped with.
+    tap: 0.06, fill: 0.03, beat: 0.035, buy: 0.03, wake: 0.05, note: 0.03,
   }),
 });
 

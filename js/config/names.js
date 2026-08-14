@@ -36,6 +36,7 @@ export const NAME_DEFAULTS = Object.freeze({
   }),
   meters: Object.freeze({
     teeth: 'TEETH', notes: 'notes', belief: 'BELIEF', stir: 'STIR',
+    noise: 'noise', hush: 'hush',
     perSec: '/s',
   }),
   ui: Object.freeze({
@@ -47,6 +48,8 @@ export const NAME_DEFAULTS = Object.freeze({
     mute: 'hush the sounds', endingContinue: 'the sky keeps filling',
     wakeAside: 'someone woke. belief slips. {unit} lies low.',
     tiptoeHint: 'half speed, half noise, fifteen seconds. always allowed. never pretty.',
+    stirHint: 'the crew makes noise. hush is how much the night absorbs. noise above hush builds STIR; at 100 someone wakes — belief drops and the loudest crew lies low. tiptoe halves noise. the loom raises hush.',
+    beliefHint: 'belief scales every tooth: ×0.5 at 0, ×1.5 at 100. quiet productive nights and reading notes raise it. wakes cut it.',
   }),
 });
 

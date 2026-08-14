@@ -4,7 +4,28 @@
 
 import { toothPath2D } from './tooth.js';
 
-export function createConveyor(canvas, vfx, onLand) {
+// Pure batching: pools one credit per productive tick and cuts a batch every
+// ticksPerBatch credits, so a batch is exactly that many ticks of income. The
+// caller sets ticksPerBatch to one second so the landing float agrees with
+// the ≈/s readout. Exported for headless tests; the conveyor is its only user.
+export function makeBatcher(ticksPerBatch) {
+  let pool = 0;
+  let ticks = 0;
+  return {
+    // Returns the finished batch amount, or null while pooling.
+    credit(amount, canLaunch) {
+      pool += amount;
+      ticks++;
+      if (ticks < ticksPerBatch || !canLaunch) return null;
+      const batch = pool;
+      pool = 0;
+      ticks = 0;
+      return batch;
+    },
+  };
+}
+
+export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   const path = toothPath2D();
   const reducedMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -13,8 +34,7 @@ export function createConveyor(canvas, vfx, onLand) {
   let h = 0;
   let dpr = 1;
   const sprites = [];        // {born, fromLeft, amount}
-  let pool = 0;              // credited teeth waiting to become a sprite
-  let poolSince = 0;
+  const batcher = makeBatcher(ticksPerBatch);
   let running = false;
   let lastDraw = 0;
   let scroll = 0;
@@ -83,15 +103,13 @@ export function createConveyor(canvas, vfx, onLand) {
 
   return {
     // Credit `amount` teeth of automated income toward the next inbound sprite.
+    // A sprite launches every ticksPerBatch credits, so it carries exactly one
+    // batch window of income and its landing float matches the rate readout.
     credit(amount, now) {
       if (reducedMotion) { if (onLand) onLand(amount); return; }
-      pool += amount;
-      if (!poolSince) poolSince = now;
-      if (sprites.length < vfx.motif.inboundMax &&
-          (now - poolSince >= vfx.motif.batchWindowMs || sprites.length === 0)) {
-        sprites.push({ born: now, fromLeft: (side = !side), amount: pool });
-        pool = 0;
-        poolSince = 0;
+      const batch = batcher.credit(amount, sprites.length < vfx.motif.inboundMax);
+      if (batch != null) {
+        sprites.push({ born: now, fromLeft: (side = !side), amount: batch });
       }
       wake();
     },

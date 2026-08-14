@@ -143,3 +143,36 @@ test('array knob overrides round-trip through buildConstants', () => {
   const c = buildConstants({ MULT_THRESHOLDS: [5, 25, 50] });
   assert.deepEqual(c.MULT_THRESHOLDS, [5, 25, 50]);
 });
+
+test('helpers fill the stage outline without taps', () => {
+  const s = playing();
+  s.units.scout = 10;          // 10/s continuous
+  s.buys.scout = 10;
+  s.outline.size = 8;
+  const before = s.outline.filled + s.outline.setsDone * 100;
+  for (let i = 0; i < 25; i++) tick(s, cfg, noStory);   // 5s of production
+  const after = s.outline.filled + s.outline.setsDone * 100;
+  assert.ok(after > before, 'passive production advanced the outline');
+});
+
+test('passive outline fill is capped per tick and never loops forever', () => {
+  const s = playing();
+  s.units.ministry = 100;      // absurd rate: 6e6/s
+  s.buys.ministry = 100;
+  s.outline.size = 64;
+  tick(s, cfg, noStory);
+  // One tick may fill at most HELPER_FILL_CAP slots (across set completions).
+  const filledTotal = s.outline.setsDone * 64 + s.outline.filled;
+  assert.ok(filledTotal <= cfg.OUTLINE.HELPER_FILL_CAP,
+    `filled ${filledTotal} <= cap ${cfg.OUTLINE.HELPER_FILL_CAP}`);
+});
+
+test('offline replay never touches the outline', () => {
+  const s = playing();
+  s.units.scout = 10;
+  s.buys.scout = 10;
+  s.upgrades.dreamledger = true;
+  const before = JSON.stringify(s.outline);
+  runOffline(s, cfg, noStory, 3600);
+  assert.equal(JSON.stringify(s.outline), before);
+});

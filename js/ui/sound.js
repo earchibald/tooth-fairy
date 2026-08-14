@@ -1,5 +1,9 @@
-// Synthesized WebAudio blips — no assets, tiny gains, silence for refusals.
+// Synthesized WebAudio blips plus one recorded clip for the tap.
 // ?mute=1 is a module flag that never touches the persisted preference.
+//
+// Tap clip: microtick.wav by Saltbearer — https://freesound.org/s/481984/ —
+// License: Creative Commons 0. The raw burst sits above 10 kHz; played at
+// quarter speed it lands near 4 kHz and reads as a crisp, tiny tick.
 
 const urlMuted = new URLSearchParams(location.search).get('mute') === '1';
 let ctx = null;
@@ -55,8 +59,44 @@ function blip({ type = 'sine', from = 440, to = 0, ms = 60, gain = 0.02, delay =
   osc.onended = () => { osc.disconnect(); g.disconnect(); };
 }
 
+const TAP_CLIP_URL = new URL('../../assets/microtick.wav', import.meta.url);
+const TAP_CLIP_RATE = 0.25;
+const clips = new Map();   // href -> AudioBuffer | 'pending' | 'failed'
+
+// Plays a decoded clip through the master gain. Returns false while the clip
+// is still fetching (or failed) so the caller can fall back to a blip —
+// the first press of a session must not be silent.
+function playClip(url, gain, rate) {
+  const c = ensure();
+  if (!c) return true;   // muted: swallow, no fallback either
+  const key = url.href;
+  if (!clips.has(key)) {
+    clips.set(key, 'pending');
+    fetch(url)
+      .then((r) => r.arrayBuffer())
+      .then((b) => c.decodeAudioData(b))
+      .then((buf) => clips.set(key, buf))
+      .catch(() => clips.set(key, 'failed'));
+  }
+  const buf = clips.get(key);
+  if (buf === 'pending' || buf === 'failed') return false;
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  const g = c.createGain();
+  g.gain.value = gain;
+  src.connect(g).connect(master);
+  src.onended = () => { src.disconnect(); g.disconnect(); };
+  src.start();
+  return true;
+}
+
 export const play = {
-  tap()  { blip({ type: 'triangle', from: 1500, to: 900, ms: 30, gain: vfx.sound.tap }); },
+  tap()  {
+    if (!playClip(TAP_CLIP_URL, vfx.sound.tap, TAP_CLIP_RATE)) {
+      blip({ type: 'triangle', from: 1500, to: 900, ms: 30, gain: vfx.sound.tap });
+    }
+  },
   fill() {
     blip({ type: 'sine', from: 660, ms: 110, gain: vfx.sound.fill });
     blip({ type: 'sine', from: 880, ms: 130, gain: vfx.sound.fill, delay: 0.09 });

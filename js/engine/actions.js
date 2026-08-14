@@ -9,7 +9,7 @@ import { UNIT_IDS } from './state.js';
 
 function bump(state) { state.uiSeq++; }
 
-function completeOutlineSet(state, cfg) {
+export function completeOutlineSet(state, cfg) {
   state.outline.setsDone++;
   state.outline.filled = 0;
   state.outline.size = Math.min(cfg.OUTLINE.MAX_SIZE, state.outline.size * 2);

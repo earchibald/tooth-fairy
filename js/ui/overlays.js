@@ -130,6 +130,19 @@ export function createOverlays(root, ctx) {
   rowReset.append(resetInput, resetBtn);
   settings.appendChild(rowReset);
 
+  // Acknowledgements. The tap clip is a real recording; its credit ships
+  // wherever the sound does.
+  const ack = el('div', 'ack');
+  ack.appendChild(el('div', 'ackTitle', 'acknowledgements'));
+  const ackLine = el('p', null, 'microtick.wav by Saltbearer — ');
+  const ackLink = el('a', null, 'https://freesound.org/s/481984/');
+  ackLink.href = 'https://freesound.org/s/481984/';
+  ackLink.target = '_blank';
+  ackLink.rel = 'noopener';
+  ackLine.append(ackLink, document.createTextNode(' — License: Creative Commons 0'));
+  ack.appendChild(ackLine);
+  settings.appendChild(ack);
+
   settings.appendChild(el('div', 'version', 'tooth fairy v' + VERSION));
 
   root.appendChild(settings);

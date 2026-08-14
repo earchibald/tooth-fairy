@@ -3,7 +3,7 @@
 // beyond formatting what the engine already decided.
 
 import { fmt } from '../engine/math.js';
-import { effectiveRatePerSec } from '../engine/predicates.js';
+import { effectiveRatePerSec, noiseLevel, hushCapacity } from '../engine/predicates.js';
 import { toothSVG } from './tooth.js';
 import { createStage } from './stage.js';
 import { createRoost } from './roost.js';
@@ -24,6 +24,7 @@ export function buildUI(app, ctx) {
   const topbar = el('header', 'topbar');
   const beliefMeter = el('div', 'meter belief');
   beliefMeter.hidden = true;
+  beliefMeter.title = names.ui.beliefHint;
   const beliefLabel = el('div', 'label');
   const beliefName = el('span', null, names.meters.belief);
   const beliefVal = el('span');
@@ -35,6 +36,7 @@ export function buildUI(app, ctx) {
 
   const stirMeter = el('div', 'meter stir');
   stirMeter.hidden = true;
+  stirMeter.title = names.ui.stirHint;
   const stirLabel = el('div', 'label');
   const stirName = el('span', null, names.meters.stir);
   const stirVal = el('span');
@@ -42,7 +44,8 @@ export function buildUI(app, ctx) {
   const stirBar = el('div', 'bar');
   const stirFill = el('div');
   stirBar.appendChild(stirFill);
-  stirMeter.append(stirLabel, stirBar);
+  const stirSub = el('div', 'sublabel');
+  stirMeter.append(stirLabel, stirBar, stirSub);
 
   const spacer = el('div', 'spacer');
   const notesChip = el('button', 'chip');
@@ -110,7 +113,8 @@ export function buildUI(app, ctx) {
   journalBtn.addEventListener('click', () => overlays.openJournal(ctx.getState(), ctx.script));
   settingsBtn.addEventListener('click', () => overlays.openSettings());
 
-  const conveyor = createConveyor(conveyorCanvas, vfx, (amount) => {
+  const ticksPerBatch = Math.max(1, Math.round(1000 / cfg.TICK_MS));
+  const conveyor = createConveyor(conveyorCanvas, vfx, ticksPerBatch, (amount) => {
     spawnFloat('+' + fmt(amount), 0.5);
     tapBtn.classList.add('pressed');
     setTimeout(() => tapBtn.classList.remove('pressed'), vfx.pulse.buttonPressMs);
@@ -158,6 +162,13 @@ export function buildUI(app, ctx) {
     set('stir', state.stirShown ? state.stir.toFixed(0) : '', (v) => {
       stirMeter.hidden = !v;
       if (v) { stirVal.textContent = v; stirFill.style.width = v + '%'; }
+    });
+    // Why STIR moves: the noise the crew makes against the hush the night
+    // absorbs. Both come from the same engine predicates the tick uses.
+    set('stirSub', !state.stirShown ? '' :
+      `${names.meters.noise} ${Math.round(noiseLevel(state, cfg))} · ` +
+      `${names.meters.hush} ${Math.round(hushCapacity(state, cfg))}`, (v) => {
+      stirSub.textContent = v;
     });
     set('notes', state.notesShown ? `${names.meters.notes}: ${state.notes}` : '', (v) => {
       notesChip.hidden = !v;
