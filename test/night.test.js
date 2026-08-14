@@ -203,7 +203,7 @@ test('v1 saves migrate: night fields defaulted, migration beat queued once', () 
   raw.state.v = 1;
   delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
   const back = deserialize(JSON.stringify(raw));
-  assert.equal(back.state.v, 2);
+  assert.equal(back.state.v, 3);
   assert.equal(back.state.night, 1);
   assert.ok(back.state.beatQueue.includes('mig-nights'));
   // Without this, a migrated act>=2 save that already saw a2-hush would also
@@ -220,7 +220,7 @@ test('act-0 v1 save migrates without queuing mig-nights or marking a2-night seen
   raw.state.v = 1;
   delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
   const back = deserialize(JSON.stringify(raw));
-  assert.equal(back.state.v, 2, 'v upgraded to 2');
+  assert.equal(back.state.v, 3, 'v upgraded to 3');
   assert.equal(back.state.act, 0, 'act remains 0');
   assert.ok(!back.state.beatQueue.includes('mig-nights'),
     'act-0 save does not queue mig-nights migration beat');
@@ -235,7 +235,7 @@ test('act>=1 v1 save queues mig-nights and marks a2-night seen to avoid double r
   raw.state.v = 1;
   delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
   const back = deserialize(JSON.stringify(raw));
-  assert.equal(back.state.v, 2, 'v upgraded to 2');
+  assert.equal(back.state.v, 3, 'v upgraded to 3');
   assert.equal(back.state.act, 1, 'act is 1');
   assert.ok(back.state.beatQueue.includes('mig-nights'),
     'act>=1 save queues mig-nights migration beat');

@@ -93,6 +93,16 @@ export const ACTIONS = {
     bump(state);
   },
 
+  buySky(state, cfg, arg) {
+    const def = arg && cfg.SKY[arg.id];
+    if (!def || state.sky[arg.id]) return;
+    if (state.stars < def.cost) return;
+    state.stars -= def.cost;
+    state.sky[arg.id] = true;
+    state.sfx.push({ type: 'buy', sky: arg.id });
+    bump(state);
+  },
+
   buyLoom(state, cfg) {
     if (!state.revealed.loom) return;
     const cost = loomCost(state, cfg);
@@ -177,6 +187,12 @@ export const ACTIONS = {
     state.lifetime += n;
     bump(state);
   },
+  devGrantStars(state, cfg, arg) {
+    const n = Math.max(0, Number(arg && arg.n) || 0);
+    state.stars += n;
+    state.starsEarned += n;
+    bump(state);
+  },
   devQueueBeat(state, cfg, arg) {
     if (!arg || !arg.id || state.beatQueue.includes(arg.id)) return;
     state.beatQueue.push(arg.id);
@@ -188,6 +204,7 @@ export const ACTIONS = {
     if (typeof arg.stir === 'number') state.stir = Math.max(0, Math.min(100, arg.stir));
     if (typeof arg.notes === 'number') state.notes = Math.max(0, Math.floor(arg.notes));
     if (typeof arg.act === 'number') state.act = arg.act;
+    if (typeof arg.town === 'number') state.town = Math.max(1, Math.floor(arg.town));
     bump(state);
   },
   devSkipToDawn(state, cfg) {

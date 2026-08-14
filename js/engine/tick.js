@@ -306,11 +306,16 @@ export function tick(state, cfg, script, opts) {
 
   // Story triggers (never offline).
   if (!offline) {
+    const townOk = (rec) =>
+      (!rec.minTown || state.town >= rec.minTown) &&
+      (!rec.maxTown || state.town <= rec.maxTown);
     for (const beat of script.beats) {
+      if (!townOk(beat)) continue;
       if (state.beatsSeen.includes(beat.id) || state.beatQueue.includes(beat.id)) continue;
       if (triggerMet(state, cfg, beat.trigger)) state.beatQueue.push(beat.id);
     }
     for (const aside of script.asides) {
+      if (!townOk(aside)) continue;
       if (state.asidesSeen.includes(aside.id)) continue;
       if (triggerMet(state, cfg, aside.trigger)) {
         state.asidesSeen.push(aside.id);
