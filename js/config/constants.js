@@ -99,6 +99,12 @@ export const DEFAULTS = Object.freeze({
     MIN_GAP_S: 7200,      // dawn rest before the next dusk (2 h)
     LEDGER_CAP: 30,       // night-ledger entries kept
   }),
+
+  CONTRACTS: Object.freeze({
+    PER_NIGHT: 3,
+    STREAK_TIERS: Object.freeze([3, 7, 14]),
+    STREAK_MULTS: Object.freeze([1.03, 1.05, 1.08]),
+  }),
 });
 
 // Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the

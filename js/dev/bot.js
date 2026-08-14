@@ -13,7 +13,7 @@ const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl'
 const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
   'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract'];
 
-export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick } = {}) {
+export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick, contracts } = {}) {
   const state = createState(seed);
   const events = [];
   let steps = 0;
@@ -29,9 +29,15 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       continue; // the game pauses while a beat is open
     }
     if (state.nightShown && state.nightPhase === 'dawn') {
-      runOffline(state, cfg, script, cfg.NIGHT.MIN_GAP_S + 60);
+      runOffline(state, cfg, script, cfg.NIGHT.MIN_GAP_S + 60, contracts);
       events.push({ tick: state.tick, beat: '(slept)' });
       continue;
+    }
+    if (state.nightShown && state.contractPicked === null && state.contractBoard.length && contracts) {
+      const best = state.contractBoard
+        .map((id) => contracts.pool.find((c) => c.id === id))
+        .sort((a, b) => (b.reward.burstS || 0) - (a.reward.burstS || 0))[0];
+      dispatch(state, cfg, 'pickContract', { id: best.id });
     }
     for (let i = 0; i < tapsPerTick; i++) dispatch(state, cfg, 'tap');
     if (state.stir > 75) dispatch(state, cfg, 'tiptoe');
@@ -60,7 +66,7 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       }
     }
     for (const unit of BUY_PRIORITY) dispatch(state, cfg, 'buyMult', { unit });
-    tick(state, cfg, script);
+    tick(state, cfg, script, { contracts });
     state.sfx.length = 0; // transient feedback, unread headless
     if (onTick) onTick(state);
   }

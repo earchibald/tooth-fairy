@@ -65,6 +65,11 @@ export function createState(seed = 1) {
     sailings: 0,                // lifetime completed sailings (river act)
     bargeManifest: 0,           // teeth logged for the barge this night
 
+    contractBoard: [],
+    contractPicked: null,
+    contractDone: false,
+    contractStreak: 0,
+
     beatsSeen: [],
     beatQueue: [],
     asidesSeen: [],
@@ -103,6 +108,7 @@ export function deserialize(raw) {
     s.beatsSeen = Array.isArray(wrapped.state.beatsSeen) ? wrapped.state.beatsSeen : [];
     s.beatQueue = Array.isArray(wrapped.state.beatQueue) ? wrapped.state.beatQueue : [];
     s.asidesSeen = Array.isArray(wrapped.state.asidesSeen) ? wrapped.state.asidesSeen : [];
+    s.contractBoard = Array.isArray(wrapped.state.contractBoard) ? wrapped.state.contractBoard : [];
     s.sfx = [];               // never replay feedback from a save
     s.tapsThisTick = 0;
     s.offlineReplay = false;

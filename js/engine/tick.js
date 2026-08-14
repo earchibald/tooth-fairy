@@ -4,13 +4,51 @@
 
 import {
   baseRatePerSec, beliefMult, pactNet, tiptoeFactor, multFactor,
-  noiseLevel, hushCapacity, revealChecks,
+  noiseLevel, hushCapacity, revealChecks, effectiveRatePerSec, contractMult,
 } from './predicates.js';
 import { UNIT_IDS } from './state.js';
 import { completeOutlineSet } from './actions.js';
+import { mulberry32 } from './rng.js';
+
+// Draws the night's contract board, deterministic from seed + night. Called
+// at reveal and each dusk.
+export function drawBoard(state, cfg, contracts) {
+  if (!contracts) { state.contractBoard = []; return; }
+  const eligible = contracts.pool.filter((c) => c.minAct <= state.act);
+  const rand = mulberry32((state.seed ^ (state.night * 2654435761)) >>> 0);
+  const deck = eligible.slice();
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  state.contractBoard = deck.slice(0, cfg.CONTRACTS.PER_NIGHT).map((c) => c.id);
+  state.contractPicked = null;
+  state.contractDone = false;
+}
+
+function completeContract(state, cfg, c, offline) {
+  state.contractDone = true;
+  state.contractStreak++;
+  if (c.reward.belief) state.belief = Math.min(100, state.belief + c.reward.belief);
+  if (c.reward.burstS) {
+    const burst = effectiveRatePerSec(state, cfg) * c.reward.burstS;
+    state.teeth += burst;
+    state.lifetime += burst;
+    state.nightStats.teeth += burst;
+  }
+  if (!offline) state.sfx.push({ type: 'contract', id: c.id, fragment: c.reward.fragment || null });
+}
 
 // Dawn: stamp the night, rest until dusk. Dusk: begin the next night.
-function toDawn(state, cfg, offline) {
+function toDawn(state, cfg, offline, contracts) {
+  if (contracts && state.contractPicked && !state.contractDone) {
+    const c = contracts.pool.find((x) => x.id === state.contractPicked);
+    const met = c && (
+      (c.type === 'quiet' && state.nightStats.wakes === 0) ||
+      (c.type === 'calm' && state.stir < c.n));
+    if (met) completeContract(state, cfg, c, offline);
+    else state.contractStreak = 0;   // an accepted, failed contract breaks the streak
+  }
   state.nightPhase = 'dawn';
   state.duskGapS = cfg.NIGHT.MIN_GAP_S;
   state.bargeManifest = state.nightStats.teeth;
@@ -18,14 +56,14 @@ function toDawn(state, cfg, offline) {
     night: state.night,
     teeth: Math.floor(state.nightStats.teeth),
     wakes: state.nightStats.wakes,
-    contractsDone: 0,          // task 6 fills this in
+    contractsDone: state.contractDone ? 1 : 0,
     sailed: (state.units.barge || 0) > 0,
   });
   if (state.nightLedger.length > cfg.NIGHT.LEDGER_CAP) state.nightLedger.shift();
   if (!offline) state.sfx.push({ type: 'dawn' });
 }
 
-function toDusk(state, cfg, offline) {
+function toDusk(state, cfg, offline, contracts) {
   const barges = state.units.barge || 0;
   if (barges > 0 && state.bargeManifest > 0) {
     const def = cfg.UNITS.barge;
@@ -43,6 +81,7 @@ function toDusk(state, cfg, offline) {
   state.nightPhase = 'night';
   state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
   state.nightStats = { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 };
+  drawBoard(state, cfg, contracts);
   if (!offline) state.sfx.push({ type: 'dusk' });
 }
 
@@ -71,14 +110,20 @@ export function tick(state, cfg, script, opts) {
   const dtTicks = (opts && opts.dtTicks) || 1;
   const offline = !!(opts && opts.offline);
   const rateFactor = (opts && opts.rateFactor !== undefined) ? opts.rateFactor : 1;
+  const contracts = opts && opts.contracts;
   const dt = (cfg.TICK_MS / 1000) * dtTicks;
 
   state.tick += dtTicks;
 
+  if (state.nightShown && state.contractBoard.length === 0 &&
+      state.contractPicked === null && state.nightPhase === 'night' && contracts) {
+    drawBoard(state, cfg, contracts);
+  }
+
   const atDawn = state.nightShown && state.nightPhase === 'dawn';
   if (atDawn) {
     state.duskGapS -= dt;
-    if (state.duskGapS <= 0) toDusk(state, cfg, offline);
+    if (state.duskGapS <= 0) toDusk(state, cfg, offline, contracts);
   }
 
   // Sprites expire; afterglow pays half their lifetime yield as a burst.
@@ -123,7 +168,8 @@ export function tick(state, cfg, script, opts) {
   // Production.
   const continuous = atDawn ? 0 : baseRatePerSec(state, cfg) * dt;
   const produced = (continuous + lump + burst) *
-    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) * rateFactor;
+    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) *
+    contractMult(state, cfg) * rateFactor;
   if (produced > 0) {
     state.teeth += produced;
     state.lifetime += produced;
@@ -136,7 +182,18 @@ export function tick(state, cfg, script, opts) {
   if (state.nightShown && state.nightPhase === 'night' &&
       (produced > 0 || state.tapsThisTick > 0)) {
     state.nightTicksLeft -= dtTicks;
-    if (state.nightTicksLeft <= 0) toDawn(state, cfg, offline);
+    if (state.nightTicksLeft <= 0) toDawn(state, cfg, offline, contracts);
+  }
+
+  // Threshold contracts complete mid-night, judged against this night's stats.
+  if (contracts && state.contractPicked && !state.contractDone) {
+    const c = contracts.pool.find((x) => x.id === state.contractPicked);
+    const ns = state.nightStats;
+    const met = c && (
+      (c.type === 'gather' && ns.teeth >= c.n) ||
+      (c.type === 'notes' && ns.notes >= c.n) ||
+      (c.type === 'tiptoes' && ns.tiptoes >= c.n));
+    if (met) completeContract(state, cfg, c, offline);
   }
 
   // Helpers fill the stage outline too: each whole automated tooth fills a
@@ -255,7 +312,7 @@ export function tick(state, cfg, script, opts) {
 
 // Offline catch-up: the same tick loop. Time (nights, dusk gaps) always
 // passes for the full absence; EARNINGS require the ledger and its caps.
-export function runOffline(state, cfg, script, elapsedS) {
+export function runOffline(state, cfg, script, elapsedS, contracts) {
   if (elapsedS < 10) return { teeth: 0, seconds: 0 };
   const capHours = state.upgrades.lucidcontract ? cfg.UPGRADES.lucidcontract.offlineCapHours
     : state.upgrades.nightledger ? cfg.UPGRADES.nightledger.offlineCapHours
@@ -275,7 +332,7 @@ export function runOffline(state, cfg, script, elapsedS) {
   for (let i = 0; i < steps; i++) {
     const stillEarning = done < earnTicks;
     tick(state, cfg, script, {
-      dtTicks: dtScale, offline: true, rateFactor: stillEarning ? rate : 0,
+      dtTicks: dtScale, offline: true, rateFactor: stillEarning ? rate : 0, contracts,
     });
     done += dtScale;
   }

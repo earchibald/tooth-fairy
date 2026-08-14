@@ -145,6 +145,15 @@ export const ACTIONS = {
     bump(state);
   },
 
+  pickContract(state, cfg, arg) {
+    if (!arg || !state.contractBoard.includes(arg.id)) return;
+    if (state.contractPicked !== null) return;
+    if (!state.nightShown || state.nightPhase !== 'night') return;
+    state.contractPicked = arg.id;
+    state.sfx.push({ type: 'pick', id: arg.id });
+    bump(state);
+  },
+
   openJournal(state) {
     state.journalOpens++;
     bump(state);

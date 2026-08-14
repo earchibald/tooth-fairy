@@ -50,7 +50,17 @@ export function effectiveRatePerSec(state, cfg) {
       (cfg.UNITS.ferry.lumpEveryTicks * (cfg.TICK_MS / 1000))
     : 0;
   return (baseRatePerSec(state, cfg) + lumps) *
-    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg);
+    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) * contractMult(state, cfg);
+}
+
+// Streak-tiered production multiplier: the highest tier reached applies.
+export function contractMult(state, cfg) {
+  let m = 1;
+  const tiers = cfg.CONTRACTS.STREAK_TIERS;
+  for (let i = 0; i < tiers.length; i++) {
+    if (state.contractStreak >= tiers[i]) m = cfg.CONTRACTS.STREAK_MULTS[i];
+  }
+  return m;
 }
 
 export function tapPower(state, cfg) {

@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 
 import { buildConstants } from '../js/config/constants.js';
 import { buildScript } from '../js/config/script.js';
+import { buildContracts } from '../js/config/contracts.js';
 import { runBot } from './helpers/bot.js';
 
 const cfg = buildConstants();
 const script = buildScript();
+const contracts = buildContracts();
 
 // Reachable only after the Task 8 rebalance raises ENDING.LIFETIME to ~2e9
 // (docs/superpowers/plans/2026-08-13-night-cycle-expansion.md, Task 8).
@@ -14,7 +16,7 @@ const script = buildScript();
 const UNREACHABLE_UNTIL_REBALANCE = new Set(['a3-starwrights', 'as-starwrights3']);
 
 test('the bot reaches the ending and sees the whole spine', () => {
-  const { state, steps } = runBot(cfg, script, { maxTicks: 400000, seed: 1 });
+  const { state, steps } = runBot(cfg, script, { maxTicks: 400000, seed: 1, contracts });
   assert.ok(state.postEnd, `postEnd after ${steps} steps, lifetime ${state.lifetime}`);
   assert.ok(state.ended);
   // Every act transition happened.
@@ -26,7 +28,7 @@ test('the bot reaches the ending and sees the whole spine', () => {
 });
 
 test('every beat is reachable by the bot', () => {
-  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 2 });
+  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 2, contracts });
   const missing = script.beats.filter(
     (b) => !UNREACHABLE_UNTIL_REBALANCE.has(b.id) && !state.beatsSeen.includes(b.id),
   );
@@ -34,7 +36,7 @@ test('every beat is reachable by the bot', () => {
 });
 
 test('every aside is reachable by the bot', () => {
-  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 3 });
+  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 3, contracts });
   const missing = script.asides.filter(
     (a) => !UNREACHABLE_UNTIL_REBALANCE.has(a.id) && !state.asidesSeen.includes(a.id),
   );
@@ -42,7 +44,7 @@ test('every aside is reachable by the bot', () => {
 });
 
 test('story ordering: the tutorial spine plays in exact script order', () => {
-  const { events } = runBot(cfg, script, { maxTicks: 400000, seed: 4 });
+  const { events } = runBot(cfg, script, { maxTicks: 400000, seed: 4, contracts });
   const spine = ['a0-icon', 'a0-few', 'a0-pile', 'a0-why', 'a0-fairy',
     'a0-toothfairy', 'a0-getteeth'];
   assert.deepEqual(
@@ -58,7 +60,7 @@ test('story ordering: the tutorial spine plays in exact script order', () => {
 });
 
 test('run length lands in a wide sane envelope for a fast bot', () => {
-  const { state } = runBot(cfg, script, { maxTicks: 400000, seed: 5, tapsPerTick: 2 });
+  const { state } = runBot(cfg, script, { maxTicks: 400000, seed: 5, tapsPerTick: 2, contracts });
   const minutes = (state.tick * cfg.TICK_MS) / 60000;
   // Tripwire on the act's shape, not a lock on its tuning.
   assert.ok(minutes > 10, `game-time minutes ${minutes.toFixed(1)} > 10`);

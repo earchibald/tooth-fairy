@@ -4,6 +4,7 @@ import { buildConstants } from './config/constants.js';
 import { buildNames } from './config/names.js';
 import { buildVfx } from './config/vfx.js';
 import { buildScript } from './config/script.js';
+import { buildContracts } from './config/contracts.js';
 import { createState, serialize, deserialize } from './engine/state.js';
 import { dispatch as engineDispatch } from './engine/actions.js';
 import { tick, runOffline } from './engine/tick.js';
@@ -24,6 +25,7 @@ const cfg = buildConstants(loadOverrides('tf-ov-constants'));
 const names = buildNames(loadOverrides('tf-ov-names'));
 const vfx = buildVfx(loadOverrides('tf-ov-vfx'));
 const script = buildScript(loadOverrides('tf-ov-script'));
+const contracts = buildContracts(loadOverrides('tf-ov-contracts'));
 
 initSound(vfx);
 
@@ -61,7 +63,7 @@ function dispatch(action, arg) {
 // ---- UI ----
 const app = document.getElementById('app');
 const ui = buildUI(app, {
-  cfg, names, vfx, script,
+  cfg, names, vfx, script, contracts,
   dispatch,
   getState: () => box.state,
   loadState: (s) => { sanitizeQueue(s); box.state = s; save(); },
@@ -77,7 +79,7 @@ const ui = buildUI(app, {
 // Offline catch-up on boot.
 if (savedAt) {
   const away = (Date.now() - savedAt) / 1000;
-  const gain = runOffline(box.state, cfg, script, away);
+  const gain = runOffline(box.state, cfg, script, away, contracts);
   if (gain.teeth > 0) ui.overlays.showReturn(gain.teeth, gain.seconds);
 }
 
@@ -108,7 +110,7 @@ setInterval(() => {
   let safety = 0;
   while (accum >= cfg.TICK_MS && safety++ < 200) {
     accum -= cfg.TICK_MS;
-    tick(box.state, cfg, script);
+    tick(box.state, cfg, script, { contracts });
   }
 }, 50);
 
@@ -225,17 +227,17 @@ document.addEventListener('keydown', (e) => {
 window.game = {
   get state() { return box.state; },
   dispatch,
-  cfg, names, vfx, script,
+  cfg, names, vfx, script, contracts,
   debug: {
-    advanceTicks(n) { for (let i = 0; i < n; i++) tick(box.state, cfg, script); },
+    advanceTicks(n) { for (let i = 0; i < n; i++) tick(box.state, cfg, script, { contracts }); },
     runUntil(fn, maxTicks = 100000) {
       let i = 0;
-      while (!fn(box.state) && i++ < maxTicks) tick(box.state, cfg, script);
+      while (!fn(box.state) && i++ < maxTicks) tick(box.state, cfg, script, { contracts });
       return i;
     },
     grant(n) { dispatch('devGrant', { n }); },
     save,
-    offline(seconds) { return runOffline(box.state, cfg, script, seconds); },
+    offline(seconds) { return runOffline(box.state, cfg, script, seconds, contracts); },
   },
 };
 
