@@ -218,12 +218,20 @@ body {
   background: radial-gradient(circle at 38% 32%, #232c44, #161c2e);
   border: 2px solid var(--accent); cursor: pointer; z-index: 2;
   display: flex; align-items: center; justify-content: center;
-  transition: opacity 0.6s;
+  transition: opacity 0.6s, transform 90ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.toothBtn svg { width: 52px; height: 52px; }
+.toothBtn svg { width: 52px; height: 52px;
+  transition: filter calc(var(--tapGlowMs, 260) * 1ms) ease-out; }
 .toothBtn svg path { fill: var(--glow); }
-.toothBtn:active, .toothBtn.pressed { transform: translate(-50%, -50%) scale(0.94); }
+.toothBtn:active, .toothBtn.pressed {
+  transform: translate(-50%, -50%) scale(var(--tapPopScale, 1.12));
+  transition-duration: calc(var(--tapPopMs, 110) * 1ms);
+}
+.toothBtn.glowing svg {
+  filter: drop-shadow(0 0 calc(var(--tapGlowSize, 18) * 1px)
+    color-mix(in srgb, var(--glow) calc(var(--tapGlowAlpha, 0.5) * 100%), transparent));
+}
 .toothBtn[hidden] { display: none !important; }
 
 .float {

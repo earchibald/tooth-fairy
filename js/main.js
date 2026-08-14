@@ -142,10 +142,12 @@ function drainSfx() {
       case 'tap':
         play.tap();
         ui.spawnFloat('+' + fmt(ev.gain), 0.5);
+        ui.conveyor.tapPulse(now);
+        ui.flashTapGlow();
         break;
       case 'fillset': play.fill(); break;
       case 'income': ui.conveyor.credit(ev.amount, now); break;
-      case 'buy': play.buy(); break;
+      case 'buy': play.buy(); ui.conveyor.buySweep(now); break;
       case 'beatDismiss': play.beat(); save(); break;
       case 'wake': {
         play.wake();

@@ -175,6 +175,15 @@ export function buildUI(app, ctx) {
 
   // ---- floats ----
   let floatCount = 0;
+  let glowTimer = null;
+  function applyTapVars() {
+    tapBtn.style.setProperty('--tapPopScale', String(vfx.juice.tapPop.scale));
+    tapBtn.style.setProperty('--tapPopMs', String(vfx.juice.tapPop.ms));
+    tapBtn.style.setProperty('--tapGlowSize', String(vfx.juice.tapGlow.size));
+    tapBtn.style.setProperty('--tapGlowAlpha', String(vfx.juice.tapGlow.alpha));
+    tapBtn.style.setProperty('--tapGlowMs', String(vfx.juice.tapGlow.ms));
+  }
+  applyTapVars();
   function spawnFloat(text, xFrac) {
     if (floatCount >= vfx.floats.maxConcurrent) return;
     floatCount++;
@@ -205,6 +214,7 @@ export function buildUI(app, ctx) {
     set('count', fmt(Math.floor(state.teeth)), (v) => { count.textContent = v; });
     set('countShow', state.counterShown, (v) => count.classList.toggle('show', v));
     const rps = effectiveRatePerSec(state, cfg);
+    conveyor.setRate(rps);
     set('rate', rps > 0 ? '≈ ' + fmt(rps) + names.meters.perSec : '', (v) => {
       rate.textContent = v;
     });
@@ -274,5 +284,13 @@ export function buildUI(app, ctx) {
     skyTab.update(state);
   }
 
-  return { update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs };
+  return {
+    update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs,
+    applyTapVars,
+    flashTapGlow() {
+      tapBtn.classList.add('glowing');
+      clearTimeout(glowTimer);
+      glowTimer = setTimeout(() => tapBtn.classList.remove('glowing'), vfx.juice.tapGlow.ms);
+    },
+  };
 }

@@ -3,7 +3,7 @@
 // swarm. The rAF loop parks when nothing is in flight.
 
 import { toothPath2D } from './tooth.js';
-import { makeBatcher } from './juice.js';
+import { makeBatcher, rampFactor, makeParticles } from './juice.js';
 export { makeBatcher } from './juice.js';
 
 export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
@@ -16,6 +16,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   let dpr = 1;
   const sprites = [];        // {born, fromLeft, amount}
   const batcher = makeBatcher(ticksPerBatch);
+  const parts = makeParticles();
+  let rate = 0;
   let running = false;
   let lastDraw = 0;
   let scroll = 0;
@@ -41,6 +43,20 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     ctx2d.restore();
   }
 
+  function ramp(maxKey) {
+    const r = vfx.juice.ramp;
+    return rampFactor(rate, r.rateLo, r.rateHi, r[maxKey]);
+  }
+
+  function colors() {
+    const css = getComputedStyle(canvas.closest('#app') || document.documentElement);
+    return {
+      spark: css.getPropertyValue('--glow').trim() || '#a8c0ea',
+      ripple: css.getPropertyValue('--accent').trim() || '#7b96c9',
+      sweep: '#e8d99a',
+    };
+  }
+
   function drawStatic() {
     ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx2d.clearRect(0, 0, w, h);
@@ -57,7 +73,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     // Pace to ~60fps so per-frame drift constants hold on 120 Hz displays.
     if (now - lastDraw < 15) { requestAnimationFrame(frame); return; }
     lastDraw = now;
-    scroll += vfx.motif.scrollPxPerS / 60;
+    scroll += (vfx.motif.scrollPxPerS * ramp('scrollHi')) / 60;
     drawStatic();
     const y = h / 2;
     const size = vfx.motif.toothPx;
@@ -66,15 +82,37 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const t = (now - s.born) / vfx.motif.inboundMs;
       if (t >= 1) {
         sprites.splice(i, 1);
+        parts.spawnSparks(w / 2, y, now, {
+          count: Math.round(vfx.juice.landSparks.count * ramp('trailHi')),
+          size: vfx.juice.landSparks.size, spreadPx: 22,
+          lifeMs: vfx.juice.landSparks.lifeMs,
+        });
         if (onLand) onLand(s.amount);
         continue;
       }
       const ease = 1 - Math.pow(1 - t, 2.2);
       const startX = s.fromLeft ? -size : w + size;
       const x = startX + (w / 2 - startX) * ease;
-      drawTooth(x, y - Math.sin(t * Math.PI) * 7, size, vfx.motif.inboundColor, 0.5 + t * 0.5);
+      const gAlpha = vfx.juice.inbound.glowAlpha * ramp('glowHi');
+      if (gAlpha > 0 && vfx.juice.inbound.glowSize > 0) {
+        ctx2d.save();
+        ctx2d.shadowColor = vfx.motif.inboundColor;
+        ctx2d.shadowBlur = vfx.juice.inbound.glowSize * ramp('glowHi');
+        ctx2d.globalAlpha = gAlpha;
+        drawTooth(x, y - Math.sin(t * Math.PI) * 7, size * ramp('sizeHi'), vfx.motif.inboundColor, Math.min(1, 0.5 + t * 0.5));
+        ctx2d.restore();
+      } else {
+        drawTooth(x, y - Math.sin(t * Math.PI) * 7, size * ramp('sizeHi'), vfx.motif.inboundColor, 0.5 + t * 0.5);
+      }
+      // Sparkle trail: spawn probabilistically per frame so trailPerS holds.
+      const perFrame = (vfx.juice.inbound.trailPerS * ramp('trailHi')) / 60;
+      if (Math.random() < perFrame) {
+        parts.spawnSparks(x, y - Math.sin(t * Math.PI) * 7, now,
+          { count: 1, size: 1.4, spreadPx: 8, lifeMs: vfx.juice.inbound.trailLife });
+      }
     }
-    if (sprites.length || batcher.pending()) requestAnimationFrame(frame);
+    parts.draw(ctx2d, now, colors(), w, h);
+    if (sprites.length || batcher.pending() || parts.step(now) > 0) requestAnimationFrame(frame);
     else { running = false; drawStatic(); }
   }
 
@@ -94,6 +132,18 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       }
       wake();
     },
+    tapPulse(now) {
+      if (reducedMotion) return;
+      parts.spawnRipple(w / 2, h / 2, now, { ms: vfx.juice.tapGlow.ms + 200, size: 46 });
+      parts.spawnSparks(w / 2, h / 2, now, vfx.juice.tapSparks);
+      wake();
+    },
+    buySweep(now) {
+      if (reducedMotion) return;
+      parts.spawnSweep(now, vfx.juice.buySweep);
+      wake();
+    },
+    setRate(rps) { rate = rps; },
     redraw: drawStatic,
     destroy() { ro.disconnect(); running = false; },
   };
