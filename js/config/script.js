@@ -10,20 +10,20 @@
 export const SCRIPT_DEFAULTS = Object.freeze({
   beats: [
     // ---- ACT 0 · WHAT (opening, per original spec, verbatim where quoted) ----
-    { id: 'a0-icon',  act: 0, register: 'memory', stage: 'icon', text: '',
+    { id: 'a0-icon',  act: 0, register: 'memory', stage: 'icon', maxTown: 1, text: '',
       response: 'what', trigger: { type: 'start' } },
-    { id: 'a0-few',   act: 0, register: 'memory', stage: 'few', text: '',
+    { id: 'a0-few',   act: 0, register: 'memory', stage: 'few', maxTown: 1, text: '',
       response: 'what the', trigger: { type: 'afterBeat', id: 'a0-icon' } },
-    { id: 'a0-pile',  act: 0, register: 'memory', stage: 'pile', text: '',
+    { id: 'a0-pile',  act: 0, register: 'memory', stage: 'pile', maxTown: 1, text: '',
       response: '...', trigger: { type: 'afterBeat', id: 'a0-few' } },
-    { id: 'a0-why',   act: 0, register: 'memory', text: '...teeth...',
+    { id: 'a0-why',   act: 0, register: 'memory', maxTown: 1, text: '...teeth...',
       response: 'why do i want teeth', trigger: { type: 'afterBeat', id: 'a0-pile' },
       effects: { showTap: true } },
-    { id: 'a0-fairy', act: 0, register: 'memory', text: 'fairy.',
+    { id: 'a0-fairy', act: 0, register: 'memory', maxTown: 1, text: 'fairy.',
       response: 'alright', trigger: { type: 'outline', set: 3 } },
-    { id: 'a0-toothfairy', act: 0, register: 'memory', text: 'TOOTH. fairy.',
+    { id: 'a0-toothfairy', act: 0, register: 'memory', maxTown: 1, text: 'TOOTH. fairy.',
       response: 'yeah ok', trigger: { type: 'afterBeat', id: 'a0-fairy' } },
-    { id: 'a0-getteeth', act: 0, register: 'memory', text: "Let's get some TEETH.",
+    { id: 'a0-getteeth', act: 0, register: 'memory', maxTown: 1, text: "Let's get some TEETH.",
       response: 'hell yeah', trigger: { type: 'afterBeat', id: 'a0-toothfairy' },
       effects: { act: 1 } },
 
@@ -167,6 +167,18 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'keep going', trigger: { type: 'afterBeat', id: 'end-remember' },
       effects: { postEnd: true } },
 
+    { id: 'end-town', act: 3, register: 'memory',
+      text: 'there is another town. there is always another town. the stars come with me — they always did.',
+      response: 'pack up', trigger: { type: 'afterBeat', id: 'end-sky' } },
+
+    // ---- TOWN 2+ (the arrival replaces the amnesia opening) ----
+    { id: 't2-arrive', act: 1, register: 'memory', minTown: 2,
+      text: 'another town. smaller. the moon followed me here. i remembered my name the whole way.',
+      response: 'back to work', trigger: { type: 'start' } },
+    { id: 't2-ledger', act: 1, register: 'ledger', minTown: 2,
+      text: 'transfer approved. balance carried: see the sky. the rounds resume at dusk. welcome, again.',
+      response: 'again.', trigger: { type: 'afterBeat', id: 't2-arrive' } },
+
     // ---- MIGRATION ----
     { id: 'mig-nights', act: 1, register: 'memory',
       text: 'the nights have gotten longer. i can feel the dawn now, and the rest between. the work is the same. there is just more night to do it in.',
@@ -214,6 +226,8 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'you keep every note. somewhere, a drawer strains.' },
     { id: 'as-wake5', trigger: { type: 'wake', count: 5 },
       text: 'the pajama sentries have a rota now. you respect it.' },
+    { id: 'as-town3', minTown: 3, trigger: { type: 'start' },
+      text: 'the bargemaster waves from a different river. same hat.' },
   ],
 
   // Idle whispers: ambient stage lines, per act. Small pools, no filler.
