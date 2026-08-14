@@ -1,11 +1,13 @@
-// Three-tab layer. Panels persist; switching toggles hidden. Badges are dots.
+// Tab layer. Panels persist; switching toggles hidden. Badges are dots.
+// The sky tab's button starts hidden; render.js reveals it once stars
+// have ever been earned.
 export function createTabs(app, names) {
   const bar = document.createElement('nav');
   bar.className = 'tabBar';
   const panels = {};
   const buttons = {};
   let current = 'tonight';
-  for (const id of ['tonight', 'log', 'roost']) {
+  for (const id of ['tonight', 'log', 'roost', 'sky']) {
     const btn = document.createElement('button');
     btn.className = 'tabBtn';
     btn.dataset.testid = 'tab-' + id;
@@ -31,9 +33,12 @@ export function createTabs(app, names) {
     if (id !== 'tonight') buttons[id].dot.hidden = true;
   }
   show('tonight');
+  buttons.sky.btn.hidden = true;
   return {
     bar, panels, show,
     active: () => current,
     setBadge(id, on) { buttons[id].dot.hidden = !on; },
+    setVisible(id, on) { buttons[id].btn.hidden = !on; },
+    isVisible: (id) => !buttons[id].btn.hidden,
   };
 }

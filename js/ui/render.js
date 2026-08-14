@@ -2,7 +2,7 @@
 // The renderer reads state and config; it never computes economy numbers
 // beyond formatting what the engine already decided.
 
-import { fmt } from '../engine/math.js';
+import { fmt, figureDone } from '../engine/math.js';
 import { effectiveRatePerSec, noiseLevel, hushCapacity } from '../engine/predicates.js';
 import { toothSVG } from './tooth.js';
 import { createStage } from './stage.js';
@@ -12,6 +12,7 @@ import { createConveyor } from './conveyor.js';
 import { createTabs } from './tabs.js';
 import { createLog } from './log.js';
 import { createBoard } from './board.js';
+import { createSkyTab } from './skytab.js';
 import { attachTip } from './tooltip.js';
 
 function el(tag, cls, text) {
@@ -77,10 +78,12 @@ export function buildUI(app, ctx) {
   attachTip(tabs.bar.children[0], names.tips.tabTonight);
   attachTip(tabs.bar.children[1], names.tips.tabLog);
   attachTip(tabs.bar.children[2], names.tips.tabRoost);
+  attachTip(tabs.bar.children[3], names.tips.tabSky);
   app.appendChild(tabs.bar);
   app.appendChild(tabs.panels.tonight);
   app.appendChild(tabs.panels.log);
   app.appendChild(tabs.panels.roost);
+  app.appendChild(tabs.panels.sky);
 
   // ---- stage ----
   const stageEl = el('main');
@@ -119,6 +122,11 @@ export function buildUI(app, ctx) {
   const roost = createRoost(roostEl, {
     cfg, names, vfx, dispatch, onCeremony: ctx.onCeremony,
   });
+
+  // ---- the sky (constellations) ----
+  const skyTabEl = el('section');
+  tabs.panels.sky.appendChild(skyTabEl);
+  const skyTab = createSkyTab(skyTabEl, { cfg, names, vfx, dispatch });
 
   // ---- tray ----
   const tray = el('footer', 'tray');
@@ -225,6 +233,10 @@ export function buildUI(app, ctx) {
       starChip.hidden = !v;
       if (v) starChip.textContent = v;
     });
+    set('skyTabVis', state.starsEarned > 0, (v) => tabs.setVisible('sky', v));
+    set('skyBadge', state.stars >= 1 &&
+      Object.keys(cfg.CONSTELLATIONS).some((id) => !figureDone(state, cfg, id)),
+      (v) => tabs.setBadge('sky', v));
     set('journal', state.beatsSeen.length > 3, (v) => { journalBtn.hidden = !v; });
     set('tiptoe', !state.tiptoeShown ? '' :
       state.tiptoeTicks > 0 ? `${names.verbs.tiptoe} ${(state.tiptoeTicks * cfg.TICK_MS / 1000).toFixed(0)}s` :
@@ -259,6 +271,7 @@ export function buildUI(app, ctx) {
     board.update(state);
     roost.update(state);
     log.update(state, ctx.script);
+    skyTab.update(state);
   }
 
   return { update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs };

@@ -179,6 +179,7 @@ function drainSfx() {
       case 'dusk': play.fill(); break;
       case 'sail': ui.conveyor.credit(ev.amount, now); break;
       case 'pick': play.buy(); break;
+      case 'trace': play.buy(); break;
       case 'contract': {
         play.fill();
         if (ev.fragment) ui.stage.aside(ev.fragment, 'note');
@@ -239,10 +240,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---- keyboard ----
-const TAB_ORDER = ['tonight', 'log', 'roost'];
+const TAB_ORDER = ['tonight', 'log', 'roost', 'sky'];
 function cycle(d) {
-  const i = TAB_ORDER.indexOf(ui.tabs.active());
-  ui.tabs.show(TAB_ORDER[(i + d + 3) % 3]);
+  const order = TAB_ORDER.filter((id) => ui.tabs.isVisible(id));
+  const i = order.indexOf(ui.tabs.active());
+  ui.tabs.show(order[(i + d + order.length) % order.length]);
 }
 document.addEventListener('keydown', (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
