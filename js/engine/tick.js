@@ -6,7 +6,7 @@ import {
   baseRatePerSec, beliefMult, pactNet, tiptoeFactor, multFactor,
   noiseLevel, hushCapacity, revealChecks, effectiveRatePerSec, contractMult,
 } from './predicates.js';
-import { UNIT_IDS } from './state.js';
+import { UNIT_IDS, actAtLeast } from './state.js';
 import { completeOutlineSet } from './actions.js';
 import { mulberry32 } from './rng.js';
 
@@ -14,7 +14,7 @@ import { mulberry32 } from './rng.js';
 // at reveal and each dusk.
 export function drawBoard(state, cfg, contracts) {
   if (!contracts) { state.contractBoard = []; return; }
-  const eligible = contracts.pool.filter((c) => c.minAct <= state.act);
+  const eligible = contracts.pool.filter((c) => actAtLeast(state.act, c.minAct));
   const rand = mulberry32((state.seed ^ (state.night * 2654435761)) >>> 0);
   const deck = eligible.slice();
   for (let i = deck.length - 1; i > 0; i--) {
@@ -90,7 +90,7 @@ function triggerMet(state, cfg, trig) {
     case 'start': return true;
     case 'afterBeat': return state.beatsSeen.includes(trig.id);
     case 'outline': return state.outline.setsDone >= trig.set;
-    case 'lifetime': return state.lifetime >= trig.value && state.act >= (trig.minAct || 0);
+    case 'lifetime': return state.lifetime >= trig.value && actAtLeast(state.act, trig.minAct || 0);
     case 'buy': return state.buys[trig.unit] >= trig.count;
     case 'upgrade': return !!state.upgrades[trig.id];
     case 'loom': return state.loom >= trig.level;
@@ -99,6 +99,8 @@ function triggerMet(state, cfg, trig) {
     case 'stirReveal': return state.stirShown;
     case 'taps': return state.taps >= trig.count;
     case 'tiptoes': return state.tiptoes >= trig.count;
+    case 'night': return state.night >= trig.count;
+    case 'sailings': return state.sailings >= trig.count;
     // The player summons the wall: the ending needs the ministry (monotone,
     // never spendable-down) plus a lifetime cushion, so it is caused, not waited for.
     case 'ending': return state.buys.ministry >= 1 && state.lifetime >= cfg.ENDING.LIFETIME;

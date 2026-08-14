@@ -13,7 +13,14 @@ const contracts = buildContracts();
 // Reachable only after the Task 8 rebalance raises ENDING.LIFETIME to ~2e9
 // (docs/superpowers/plans/2026-08-13-night-cycle-expansion.md, Task 8).
 // Task 8 MUST empty this set.
-const UNREACHABLE_UNTIL_REBALANCE = new Set(['a3-starwrights', 'as-starwrights3']);
+// r-firstsail/r-fog/r-ledger gate on state.sailings, which only increments at
+// dusk; at the current ENDING.LIFETIME the bot's exponential ramp reaches the
+// ending in ~10000 ticks total, short of even one NIGHT.LENGTH_TICKS (10500)
+// of productive play after nightShown — so no dusk, and no sailings, ever
+// occur in a playthrough. r-barge (buy-triggered) is unaffected and reachable.
+const UNREACHABLE_UNTIL_REBALANCE = new Set([
+  'a3-starwrights', 'as-starwrights3', 'r-firstsail', 'r-fog', 'r-ledger',
+]);
 
 test('the bot reaches the ending and sees the whole spine', () => {
   const { state, steps } = runBot(cfg, script, { maxTicks: 400000, seed: 1, contracts });
@@ -54,9 +61,10 @@ test('story ordering: the tutorial spine plays in exact script order', () => {
   // No act-2 beat may fire before the act-2 transition beat is dismissed.
   const order = events.map((e) => e.beat);
   const stirAt = order.indexOf('a2-stir');
-  for (const id of ['a2-firstwake', 'a2-sprite', 'a2-ferry', 'a2-doorway']) {
+  for (const id of ['a2-firstwake', 'a2-sprite', 'a2-ferry', 'r-doorway']) {
     assert.ok(order.indexOf(id) > stirAt, `${id} after a2-stir`);
   }
+  assert.ok(order.indexOf('a3-fold') > order.indexOf('r-doorway'), 'a3-fold after r-doorway');
 });
 
 test('run length lands in a wide sane envelope for a fast bot', () => {

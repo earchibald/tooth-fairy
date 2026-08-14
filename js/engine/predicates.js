@@ -2,7 +2,7 @@
 // the hint, the card renderer, and the buy guard — they must never diverge.
 
 import { nextCost } from './math.js';
-import { UNIT_IDS } from './state.js';
+import { UNIT_IDS, actAtLeast } from './state.js';
 
 export function multFactor(state, unit, cfg) {
   let f = Math.pow(2, state.mults[unit] || 0);
@@ -126,8 +126,8 @@ export function revealChecks(state, cfg) {
     'unit:phantom': state.act >= 2 && afford(cfg.UNITS.phantom.base),
     'unit:owl': state.act >= 2 && state.buys.bunny >= 3 && afford(cfg.UNITS.owl.base),
     'unit:ferry': state.act >= 2 && afford(cfg.UNITS.ferry.base),
-    'unit:barge': state.act >= 25 && afford(cfg.UNITS.barge.base),
-    'unit:pact': state.act >= 3, // the fold beat is the ceremony; the card may tease
+    'unit:barge': actAtLeast(state.act, 25) && afford(cfg.UNITS.barge.base),
+    'unit:pact': actAtLeast(state.act, 3), // the fold beat is the ceremony; the card may tease
     'unit:ministry': state.buys.pact >= 3, // the ledger beat is the hint; the card teases
     'unit:starwrights': state.buys.ministry >= 1 && afford(cfg.UNITS.starwrights.base),
 

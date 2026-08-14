@@ -153,6 +153,18 @@ test('a unique upgrade doubles its unit', () => {
   assert.ok(ratio > 1.9 && ratio < 2.1, `scout output ratio ${ratio.toFixed(2)} ≈ 2`);
 });
 
+test('night and sailings triggers gate river beats', () => {
+  const s = nightPlaying();
+  const beat = { id: 'x', trigger: { type: 'sailings', count: 2 } };
+  const script2 = { beats: [beat], asides: [], whispers: {}, notes: [] };
+  s.sailings = 1;
+  tick(s, cfg, script2);
+  assert.ok(!s.beatQueue.includes('x'));
+  s.sailings = 2;
+  tick(s, cfg, script2);
+  assert.ok(s.beatQueue.includes('x'));
+});
+
 test('manifestii doubles the barge manifest share within the clamp', () => {
   const s = nightPlaying();
   s.units.scout = 10; s.buys.scout = 10;

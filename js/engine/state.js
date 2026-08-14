@@ -5,6 +5,19 @@
 export const UNIT_IDS = ['scout', 'mouse', 'bunny', 'sprite', 'phantom', 'owl',
   'ferry', 'barge', 'pact', 'ministry', 'starwrights'];
 
+// Acts progress in story order, not numeric order: the river (25) sits
+// between act 2 and act 3, so raw `>=` comparisons break across that
+// boundary (25 > 3). Use these wherever "at least act N" or "raise the
+// act" logic needs the STORY order rather than the numeric value.
+export const ACT_ORDER = [0, 1, 2, 25, 3];
+export function actRank(act) {
+  const i = ACT_ORDER.indexOf(act);
+  return i === -1 ? act : i;
+}
+export function actAtLeast(act, min) {
+  return actRank(act) >= actRank(min);
+}
+
 const zeroUnits = () => Object.fromEntries(UNIT_IDS.map((u) => [u, 0]));
 
 export function createState(seed = 1) {

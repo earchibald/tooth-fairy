@@ -3,7 +3,8 @@
 // mono, counted) · responses are the player's voice (lowercase snark).
 // Trigger types: start · afterBeat{id} · outline{set} · lifetime{value,minAct?} ·
 // buy{unit,count} · upgrade{id} · loom{level} · wake{count} · noteRead{count} ·
-// taps{count} · tiptoes{count} · stirReveal · ending · never
+// taps{count} · tiptoes{count} · night{count} · sailings{count} · stirReveal ·
+// ending · never
 // A beat pauses the game until its response is pressed. Beats never fire offline.
 
 export const SCRIPT_DEFAULTS = Object.freeze({
@@ -109,15 +110,32 @@ export const SCRIPT_DEFAULTS = Object.freeze({
     { id: 'a2-spire', act: 2, register: 'memory',
       text: 'i watched the town from the church spire tonight. every window a job. every job a kid. i used to know all their names. the ledger knows them now.',
       response: 'the ledger remembers', trigger: { type: 'lifetime', value: 100000, minAct: 2 } },
-    { id: 'a2-doorway', act: 2, register: 'memory',
-      text: "there's someone in the doorway. tall. tired. holding a tooth between finger and thumb like it's evidence. they're not surprised to see me.",
-      response: 'uh oh', trigger: { type: 'lifetime', value: 800000, minAct: 2 } },
+    // ---- ACT 2.5 · THE RIVER ----
+    { id: 'r-enter', act: 2, register: 'memory',
+      text: 'i rode the ferry tonight. all the way. past the last house, into the fog. there is a far shore. i have been there. i cannot remember it.',
+      response: 'ride again', trigger: { type: 'lifetime', value: 800000, minAct: 2 },
+      effects: { act: 25 } },
+    { id: 'r-barge', act: 25, register: 'memory',
+      text: 'the bargemaster tips her hat like we have met. we have met. the hold smells like rain and enamel.',
+      response: 'load it up', trigger: { type: 'buy', unit: 'barge', count: 1 } },
+    { id: 'r-firstsail', act: 25, register: 'memory',
+      text: 'first sailing on the books. the barge came back low in the water and heavier than it left. the river pays interest. rivers should not do that.',
+      response: 'rivers keep secrets', trigger: { type: 'sailings', count: 1 } },
+    { id: 'r-fog', act: 25, register: 'memory',
+      text: 'third night on the river. the fog has a shape in it now. tall. patient. it waves back.',
+      response: '...wave again', trigger: { type: 'sailings', count: 3 } },
+    { id: 'r-ledger', act: 25, register: 'ledger',
+      text: 'river manifest audited. sailings: 5. shrinkage: zero. the far shore signs its receipts in a hand you would recognize.',
+      response: 'i might', trigger: { type: 'sailings', count: 5 } },
+    { id: 'r-doorway', act: 25, register: 'memory',
+      text: "there's someone in the doorway. tall. tired. holding a tooth between finger and thumb like it's evidence. they're not surprised to see me. they smell like the river.",
+      response: 'uh oh', trigger: { type: 'lifetime', value: 8000000, minAct: 25 },
+      effects: { act: 3 } },
 
     // ---- ACT 3 · THE FOLD ----
     { id: 'a3-fold', act: 3, register: 'memory',
       text: "they've known. of course they've known. who did i think moved the pillow back? who left the porch light off on purpose?",
-      response: 'the parents', trigger: { type: 'lifetime', value: 1000000, minAct: 2 },
-      effects: { act: 3 } },
+      response: 'the parents', trigger: { type: 'afterBeat', id: 'r-doorway' } },
     { id: 'a3-firstpact', act: 3, register: 'memory',
       text: "the first signature is neat. careful. grown-up. they kept the flashlight, you know. it's on the nightstand now. for their kid.",
       response: 'oh.', trigger: { type: 'buy', unit: 'pact', count: 1 } },
@@ -206,6 +224,11 @@ export const SCRIPT_DEFAULTS = Object.freeze({
         'small wings, punching in.',
         'the loom hums a bar of something old.',
         'a mayfly clocks out, waving.'],
+    25: ['a horn, closer tonight.',
+         'the water holds its breath.',
+         'rope, wet wood, and mint.',
+         'the far shore keeps a light on.',
+         'something upriver is counting too.'],
     3: ['something rustles, house to house.',
         'a porch light goes dark, politely.',
         'paperwork, in triplicate, somewhere.',

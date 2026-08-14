@@ -5,7 +5,7 @@ import { bulkCost, nextCost, maxAffordable } from './math.js';
 import {
   tapPower, beliefMult, multTier, multOwned, loomCost, revealChecks,
 } from './predicates.js';
-import { UNIT_IDS } from './state.js';
+import { UNIT_IDS, ACT_ORDER } from './state.js';
 
 function bump(state) { state.uiSeq++; }
 
@@ -139,7 +139,9 @@ export const ACTIONS = {
       state.nightShown = true;
       state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
     }
-    if (fx.act && fx.act > state.act) state.act = fx.act;
+    // Story order, not numeric order: the river (25) sits between act 2
+    // and act 3, so a raw `>` would block the 25 → 3 transition.
+    if (fx.act && ACT_ORDER.indexOf(fx.act) > ACT_ORDER.indexOf(state.act)) state.act = fx.act;
     if (fx.ending) state.ended = true;
     if (fx.postEnd) state.postEnd = true;
     bump(state);

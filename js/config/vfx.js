@@ -35,6 +35,7 @@ export const VFX_DEFAULTS = Object.freeze({
     0: Object.freeze({ bg: '#10131c', surface: '#171b27', ink: '#d7dceb', dim: '#8b93ad', accent: '#7b96c9', glow: '#a8c0ea' }),
     1: Object.freeze({ bg: '#0e1220', surface: '#151a2b', ink: '#dde2f0', dim: '#8f97b2', accent: '#84a1d8', glow: '#b4cbf2' }),
     2: Object.freeze({ bg: '#0b0f1e', surface: '#12172a', ink: '#e2e6f3', dim: '#939bb6', accent: '#8ba8de', glow: '#bfd4f7' }),
+    25: Object.freeze({ bg: '#081420', surface: '#0e1b2b', ink: '#dfeaf2', dim: '#8fa3b4', accent: '#7fb0c9', glow: '#b8e0ef' }),
     3: Object.freeze({ bg: '#080c1c', surface: '#101527', ink: '#e8ecf7', dim: '#98a0bb', accent: '#93b0e4', glow: '#ccdefc' }),
   }),
   sound: Object.freeze({
