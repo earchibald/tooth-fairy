@@ -166,6 +166,12 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'every tooth becomes a star. it always did. the sky is the ledger, and the ledger is full of children who grew up brave enough to lose things. keep going. there is room.',
       response: 'keep going', trigger: { type: 'afterBeat', id: 'end-remember' },
       effects: { postEnd: true } },
+
+    // ---- MIGRATION ----
+    { id: 'mig-nights', act: 1, register: 'memory',
+      text: 'the nights have gotten longer. i can feel the dawn now, and the rest between. the work is the same. there is just more night to do it in.',
+      response: 'more night. got it.', trigger: { type: 'never' },
+      effects: { revealNight: true } },
   ],
 
   // One-shot stage asides: non-pausing, fade after a beat's read time.

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildConstants } from '../js/config/constants.js';
-import { createState } from '../js/engine/state.js';
+import { createState, serialize, deserialize } from '../js/engine/state.js';
 import { dispatch } from '../js/engine/actions.js';
 import { tick, runOffline } from '../js/engine/tick.js';
 
@@ -192,4 +192,16 @@ test('only one pact signs per night', () => {
   s.units.scout = 1; s.buys.scout = 1;      // burn the night productively
   for (let i = 0; i < gapAndNight; i++) tick(s, cfg, noStory);
   assert.ok(dispatch(s, cfg, 'buyUnit', { unit: 'pact' }), 'new night, new signature');
+});
+
+test('v1 saves migrate: night fields defaulted, migration beat queued once', () => {
+  const s = nightPlaying();
+  s.act = 2;
+  const raw = JSON.parse(serialize(s));
+  raw.state.v = 1;
+  delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
+  const back = deserialize(JSON.stringify(raw));
+  assert.equal(back.state.v, 2);
+  assert.equal(back.state.night, 1);
+  assert.ok(back.state.beatQueue.includes('mig-nights'));
 });

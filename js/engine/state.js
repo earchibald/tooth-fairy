@@ -22,7 +22,7 @@ const zeroUnits = () => Object.fromEntries(UNIT_IDS.map((u) => [u, 0]));
 
 export function createState(seed = 1) {
   return {
-    v: 1,
+    v: 2,
     seed: seed >>> 0 || 1,
     rngState: seed >>> 0 || 1,
     tick: 0,
@@ -126,6 +126,10 @@ export function deserialize(raw) {
     s.sfx = [];               // never replay feedback from a save
     s.tapsThisTick = 0;
     s.offlineReplay = false;
+    if ((wrapped.state.v || 1) < 2) {
+      s.v = 2;
+      if (s.act >= 1 && !s.beatQueue.includes('mig-nights')) s.beatQueue.push('mig-nights');
+    }
     return { state: s, savedAt: wrapped.savedAt || Date.now() };
   } catch {
     return null;
