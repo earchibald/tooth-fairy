@@ -4,7 +4,7 @@
 
 import {
   baseRatePerSec, beliefMult, pactNet, tiptoeFactor, multFactor,
-  noiseLevel, hushCapacity, revealChecks, effectiveRatePerSec, contractMult,
+  noiseLevel, hushCapacity, revealChecks, effectiveRatePerSec, contractMult, skyMult,
 } from './predicates.js';
 import { UNIT_IDS, actAtLeast } from './state.js';
 import { completeOutlineSet } from './actions.js';
@@ -67,7 +67,9 @@ function toDusk(state, cfg, offline, contracts) {
   const barges = state.units.barge || 0;
   if (barges > 0 && state.bargeManifest > 0) {
     const def = cfg.UNITS.barge;
-    const frac = Math.min(def.manifestCap,
+    const capBase = def.manifestCap +
+      (state.sky && state.sky.ferrytoken ? cfg.SKY.ferrytoken.cap : 0);
+    const frac = Math.min(capBase,
       def.manifestFrac * barges * Math.pow(2, state.mults.barge || 0) *
       (state.upgrades.manifestii ? cfg.UPGRADES.manifestii.manifestMult : 1));
     const lump = state.bargeManifest * frac;
@@ -172,7 +174,7 @@ export function tick(state, cfg, script, opts) {
   const continuous = atDawn ? 0 : baseRatePerSec(state, cfg) * dt;
   const produced = (continuous + lump + burst) *
     beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) *
-    contractMult(state, cfg) * rateFactor;
+    contractMult(state, cfg) * skyMult(state, cfg) * rateFactor;
   if (produced > 0) {
     state.teeth += produced;
     state.lifetime += produced;

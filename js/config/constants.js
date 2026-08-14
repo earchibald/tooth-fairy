@@ -105,6 +105,24 @@ export const DEFAULTS = Object.freeze({
     STREAK_TIERS: Object.freeze([3, 7, 14]),
     STREAK_MULTS: Object.freeze([1.03, 1.05, 1.08]),
   }),
+
+  STARS: Object.freeze({
+    PIVOT: 6e11,          // lifetime that pays AT_PIVOT stars (= ENDING.LIFETIME)
+    AT_PIVOT: 10,
+    EXP: 0.5,             // sublinear growth past the pivot
+    RATE_PER_STAR: 0.02,  // passive production bonus per star ever earned
+    TOWN_LEDGER_CAP: 10,
+  }),
+
+  // The sky shop: one-shot star-priced flags, permanent across towns.
+  SKY: Object.freeze({
+    oldroads:      Object.freeze({ cost: 3 }),
+    mouseletter:   Object.freeze({ cost: 5, scouts: 10 }),
+    packedlight:   Object.freeze({ cost: 8 }),
+    lullabythread: Object.freeze({ cost: 10, hush: 20 }),
+    starcharts:    Object.freeze({ cost: 12 }),
+    ferrytoken:    Object.freeze({ cost: 18, cap: 0.05 }),
+  }),
 });
 
 // Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the

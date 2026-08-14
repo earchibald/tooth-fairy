@@ -50,7 +50,7 @@ export function effectiveRatePerSec(state, cfg) {
       (cfg.UNITS.ferry.lumpEveryTicks * (cfg.TICK_MS / 1000))
     : 0;
   return (baseRatePerSec(state, cfg) + lumps) *
-    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) * contractMult(state, cfg);
+    beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) * contractMult(state, cfg) * skyMult(state, cfg);
 }
 
 // Streak-tiered production multiplier: the highest tier reached applies.
@@ -61,6 +61,11 @@ export function contractMult(state, cfg) {
     if (state.contractStreak >= tiers[i]) m = cfg.CONTRACTS.STREAK_MULTS[i];
   }
   return m;
+}
+
+// Passive prestige bonus: every star ever earned, spent or not, every town.
+export function skyMult(state, cfg) {
+  return 1 + (state.starsEarned || 0) * cfg.STARS.RATE_PER_STAR;
 }
 
 export function tapPower(state, cfg) {
@@ -89,7 +94,8 @@ export function noiseLevel(state, cfg) {
 }
 
 export function hushCapacity(state, cfg) {
-  return cfg.STIR.HUSH_BASE + state.loom * cfg.LOOM.hushPerLevel;
+  return cfg.STIR.HUSH_BASE + state.loom * cfg.LOOM.hushPerLevel +
+    (state.sky && state.sky.lullabythread ? cfg.SKY.lullabythread.hush : 0);
 }
 
 export function loomCost(state, cfg) {

@@ -25,6 +25,12 @@ export function maxAffordable(base, growth, owned, teeth) {
   return k;
 }
 
+// Stars banked when a town is left: closed-form from that town's lifetime.
+export function starsAtLifetime(lifetime, cfg) {
+  if (!(lifetime > 0)) return 0;
+  return Math.floor(cfg.STARS.AT_PIVOT * Math.pow(lifetime / cfg.STARS.PIVOT, cfg.STARS.EXP));
+}
+
 export function fmt(n) {
   if (n < 1000) return String(Math.floor(n));
   const units = ['k', 'm', 'b', 't', 'q'];
