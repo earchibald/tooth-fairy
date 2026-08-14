@@ -205,7 +205,7 @@ document.addEventListener('keydown', (e) => {
   // While an overlay is up, only closing keys work — a hidden beat response
   // or a purchase must never fire behind a dialog.
   if (ui.overlays.anyOpen()) {
-    if (e.key === 'Escape' || e.key === 'j') ui.overlays.closeAll();
+    if (e.key === 'Escape') ui.overlays.closeAll();
     return;
   }
   const beatBtn = document.querySelector('.beatCard.show [data-testid="beat-response"]');
@@ -219,8 +219,8 @@ document.addEventListener('keydown', (e) => {
     case 's': dispatch('tiptoe'); break;
     case 'n': dispatch('readNote'); break;
     case 'j':
-      ui.overlays.anyOpen() ? ui.overlays.closeAll()
-        : ui.overlays.openJournal(box.state, script);
+      ui.tabs.show('log');
+      dispatch('openJournal');
       break;
     case 'Escape': ui.overlays.closeAll(); break;
     case '[': cycle(-1); break;

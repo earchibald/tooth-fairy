@@ -10,6 +10,7 @@ import { createRoost } from './roost.js';
 import { createOverlays } from './overlays.js';
 import { createConveyor } from './conveyor.js';
 import { createTabs } from './tabs.js';
+import { createLog } from './log.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -84,8 +85,8 @@ export function buildUI(app, ctx) {
     onOrphan: (id) => { dispatch('dismissBeat', { id }); },
   });
 
-  // ---- the log (placeholder until task 11) ----
-  tabs.panels.log.appendChild(el('h2', 'logPlaceholder', names.tabs.log));
+  // ---- the log ----
+  const log = createLog(tabs.panels.log, { names });
 
   // ---- roost ----
   const roostEl = el('section');
@@ -121,7 +122,10 @@ export function buildUI(app, ctx) {
   app.appendChild(tray);
 
   const overlays = createOverlays(app, ctx);
-  journalBtn.addEventListener('click', () => overlays.openJournal(ctx.getState(), ctx.script));
+  journalBtn.addEventListener('click', () => {
+    tabs.show('log');
+    dispatch('openJournal');
+  });
   settingsBtn.addEventListener('click', () => overlays.openSettings());
 
   const ticksPerBatch = Math.max(1, Math.round(1000 / cfg.TICK_MS));
@@ -199,6 +203,7 @@ export function buildUI(app, ctx) {
     });
     stage.update(state, ctx.script);
     roost.update(state);
+    log.update(state, ctx.script);
   }
 
   return { update, stage, roost, overlays, conveyor, tapBtn, spawnFloat, tabs };

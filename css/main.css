@@ -293,7 +293,6 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
   border-radius: 50%; background: var(--glow);
 }
 .tabPanel { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-.logPlaceholder {
-  margin: auto; color: var(--dim); font-size: 13px; letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+.logStamps .stamp { font-family: ui-monospace, monospace; font-size: 11px;
+  color: var(--dim); padding: 3px 14px; }
+.logEntries { padding: 8px 14px; }

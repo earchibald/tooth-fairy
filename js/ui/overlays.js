@@ -16,37 +16,6 @@ function el(tag, cls, text) {
 export function createOverlays(root, ctx) {
   const { names, dispatch } = ctx;
 
-  // ---- journal ----
-  const journal = el('div', 'overlay');
-  journal.hidden = true;
-  journal.dataset.testid = 'journal';
-  journal.setAttribute('role', 'dialog');
-  journal.setAttribute('aria-modal', 'true');
-  journal.setAttribute('aria-label', names.verbs.journal);
-  const jClose = el('button', 'iconbtn closeBtn', '✕');
-  jClose.setAttribute('aria-label', 'close');
-  jClose.addEventListener('click', () => { journal.hidden = true; });
-  const jTitle = el('h2', null, names.verbs.journal);
-  const jList = el('div');
-  journal.append(jClose, jTitle, jList);
-  root.appendChild(journal);
-
-  function openJournal(state, script) {
-    dispatch('openJournal');
-    while (jList.firstChild) jList.removeChild(jList.firstChild);
-    for (const id of state.beatsSeen) {
-      const beat = script.beats.find((b) => b.id === id);
-      if (!beat || (!beat.text && !beat.response)) continue;
-      const entry = el('div', 'journalEntry' + (beat.register === 'ledger' ? ' ledger' : ''));
-      if (beat.text) entry.appendChild(el('div', 'jt', beat.text));
-      entry.appendChild(el('div', 'jr', beat.response));
-      jList.appendChild(entry);
-    }
-    if (!jList.firstChild) jList.appendChild(el('div', 'jt', '(nothing yet. get some teeth.)'));
-    journal.hidden = false;
-    jClose.focus();
-  }
-
   // ---- settings ----
   const settings = el('div', 'overlay');
   settings.hidden = true;
@@ -162,7 +131,6 @@ export function createOverlays(root, ctx) {
   root.appendChild(ret);
 
   return {
-    openJournal,
     openSettings: () => { settings.hidden = false; sClose.focus(); },
     showReturn(gain, seconds) {
       retBig.textContent = '+' + fmt(gain) + ' teeth';
@@ -171,7 +139,7 @@ export function createOverlays(root, ctx) {
       retSub.textContent = `the night ran ${h ? h + 'h ' : ''}${m}m without you.`;
       ret.hidden = false;
     },
-    anyOpen: () => !journal.hidden || !settings.hidden || !ret.hidden,
-    closeAll: () => { journal.hidden = true; settings.hidden = true; ret.hidden = true; },
+    anyOpen: () => !settings.hidden || !ret.hidden,
+    closeAll: () => { settings.hidden = true; ret.hidden = true; },
   };
 }
