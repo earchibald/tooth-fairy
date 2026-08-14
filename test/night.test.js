@@ -117,3 +117,53 @@ test('the barge pays a fraction of last night at dusk and counts a sailing', () 
   assert.ok(Math.abs((s.teeth - before) - manifest * frac) < 10);
   assert.equal(s.sailings, 1);
 });
+
+test('the barge manifest share clamps to manifestCap when mults.barge and count push it past the cap', () => {
+  const s = nightPlaying();
+  s.units.scout = 10; s.buys.scout = 10;
+  s.units.barge = 10; s.buys.barge = 10;
+  s.mults.barge = 1;
+  for (let i = 0; i < cfg.NIGHT.LENGTH_TICKS + 2; i++) tick(s, cfg, noStory);
+  const manifest = s.bargeManifest;
+  assert.ok(manifest > 0);
+  const before = s.teeth;
+  const gapTicks = Math.ceil(cfg.NIGHT.MIN_GAP_S / (cfg.TICK_MS / 1000));
+  for (let i = 0; i < gapTicks + 2; i++) tick(s, cfg, noStory);
+  // Uncapped would be manifestFrac(0.05) * barges(10) * 2^mults(2) = 1.0 — way
+  // past manifestCap(0.25). If the clamp were missing or bypassed, the payout
+  // would be 4x this, so an unclamped-expectation assertion would fail here.
+  const uncapped = cfg.UNITS.barge.manifestFrac * 10 * Math.pow(2, 1);
+  assert.ok(uncapped > cfg.UNITS.barge.manifestCap, 'test setup must actually exceed the cap');
+  assert.ok(Math.abs((s.teeth - before) - manifest * cfg.UNITS.barge.manifestCap) < 10,
+    'payout uses the clamped cap, not the raw frac * barges * mults');
+  assert.equal(s.sailings, 1);
+});
+
+test('a unique upgrade doubles its unit', () => {
+  const plain = nightPlaying();
+  plain.units.scout = 10; plain.buys.scout = 10;
+  for (let i = 0; i < 10; i++) tick(plain, cfg, noStory);
+
+  const upgraded = nightPlaying();
+  upgraded.units.scout = 10; upgraded.buys.scout = 10;
+  upgraded.upgrades.sockradar = true;
+  for (let i = 0; i < 10; i++) tick(upgraded, cfg, noStory);
+
+  const ratio = upgraded.teeth / plain.teeth;
+  assert.ok(ratio > 1.9 && ratio < 2.1, `scout output ratio ${ratio.toFixed(2)} ≈ 2`);
+});
+
+test('manifestii doubles the barge manifest share within the clamp', () => {
+  const s = nightPlaying();
+  s.units.scout = 10; s.buys.scout = 10;
+  s.units.barge = 2; s.buys.barge = 2;
+  s.upgrades.manifestii = true;
+  for (let i = 0; i < cfg.NIGHT.LENGTH_TICKS + 2; i++) tick(s, cfg, noStory);
+  const manifest = s.bargeManifest;
+  assert.ok(manifest > 0);
+  const before = s.teeth;
+  const gapTicks = Math.ceil(cfg.NIGHT.MIN_GAP_S / (cfg.TICK_MS / 1000));
+  for (let i = 0; i < gapTicks + 2; i++) tick(s, cfg, noStory);
+  const frac = Math.min(cfg.UNITS.barge.manifestCap, cfg.UNITS.barge.manifestFrac * 2 * cfg.UPGRADES.manifestii.manifestMult);
+  assert.ok(Math.abs((s.teeth - before) - manifest * frac) < 10);
+});

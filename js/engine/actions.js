@@ -57,7 +57,8 @@ export const ACTIONS = {
     state.units[unit] += n;
     state.buys[unit] += n;
     if (unit === 'sprite') {
-      for (let i = 0; i < n; i++) state.spriteExpiries.push(state.tick + def.lifeTicks);
+      const life = Math.round(def.lifeTicks * (state.upgrades.encore ? cfg.UPGRADES.encore.spriteLifeMult : 1));
+      for (let i = 0; i < n; i++) state.spriteExpiries.push(state.tick + life);
     }
     state.sfx.push({ type: 'buy', unit, n });
     bump(state);

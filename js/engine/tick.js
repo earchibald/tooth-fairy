@@ -30,7 +30,8 @@ function toDusk(state, cfg, offline) {
   if (barges > 0 && state.bargeManifest > 0) {
     const def = cfg.UNITS.barge;
     const frac = Math.min(def.manifestCap,
-      def.manifestFrac * barges * Math.pow(2, state.mults.barge || 0));
+      def.manifestFrac * barges * Math.pow(2, state.mults.barge || 0) *
+      (state.upgrades.manifestii ? cfg.UPGRADES.manifestii.manifestMult : 1));
     const lump = state.bargeManifest * frac;
     state.teeth += lump;
     state.lifetime += lump;
@@ -90,7 +91,7 @@ export function tick(state, cfg, script, opts) {
         state.units.sprite = Math.max(0, state.units.sprite - 1);
         if (state.upgrades.afterglow) {
           burst += def.rate * (def.lifeTicks * cfg.TICK_MS / 1000) *
-                   def.afterglowFrac * multFactor(state, 'sprite');
+                   def.afterglowFrac * multFactor(state, 'sprite', cfg);
         }
         if (!offline) state.sfx.push({ type: 'expire' });
       } else {
@@ -109,7 +110,7 @@ export function tick(state, cfg, script, opts) {
     const def = cfg.UNITS.ferry;
     while (state.ferryPhase >= def.lumpEveryTicks) {
       state.ferryPhase -= def.lumpEveryTicks;
-      lump += def.lumpAmount * state.units.ferry * multFactor(state, 'ferry');
+      lump += def.lumpAmount * state.units.ferry * multFactor(state, 'ferry', cfg);
       ferrySpike = def.noiseSpike * state.units.ferry;
       if (!offline) state.sfx.push({ type: 'ferry' });
     }

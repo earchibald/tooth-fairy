@@ -162,6 +162,11 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
     dreamledger: `offline gathering: ${cfg.UPGRADES.dreamledger.offlineRate * 100}% for ${cfg.UPGRADES.dreamledger.offlineCapHours}h`,
     nightledger: `offline window grows to ${cfg.UPGRADES.nightledger.offlineCapHours}h`,
     lucidcontract: `offline gathering: 100% for ${cfg.UPGRADES.lucidcontract.offlineCapHours}h`,
+    sockradar: 'tooth scouts ×2', madrid: 'pillow mice ×2',
+    encore: 'sprites live 50% longer', feltslippers: 'floss phantoms ×2',
+    lighthouse: 'tooth ferries ×2', manifestii: 'barge manifest share ×2',
+    notary: 'parent pacts ×2', annexforms: 'ministry ×2',
+    moonclippers: 'taps gather ×2 again',
   };
   for (const id of Object.keys(cfg.UPGRADES)) {
     const n = names.upgrades[id];

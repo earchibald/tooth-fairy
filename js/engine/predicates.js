@@ -4,8 +4,12 @@
 import { nextCost } from './math.js';
 import { UNIT_IDS } from './state.js';
 
-export function multFactor(state, unit) {
-  return Math.pow(2, state.mults[unit] || 0);
+export function multFactor(state, unit, cfg) {
+  let f = Math.pow(2, state.mults[unit] || 0);
+  for (const id of Object.keys(cfg.UPGRADES)) {
+    if (cfg.UPGRADES[id].unitMult === unit && state.upgrades[id]) f *= 2;
+  }
+  return f;
 }
 
 export function pactNet(state, cfg) {
@@ -32,7 +36,7 @@ export function baseRatePerSec(state, cfg) {
     const def = cfg.UNITS[u];
     if (!def.rate) continue;
     if (state.stunUnit === u && state.stunTicks > 0) continue;
-    rate += def.rate * state.units[u] * multFactor(state, u);
+    rate += def.rate * state.units[u] * multFactor(state, u, cfg);
   }
   return rate;
 }
@@ -42,7 +46,7 @@ export function effectiveRatePerSec(state, cfg) {
   if (state.nightShown && state.nightPhase === 'dawn') return 0;
   const ferryStunned = state.stunUnit === 'ferry' && state.stunTicks > 0;
   const lumps = state.units.ferry > 0 && cfg.UNITS.ferry.lumpEveryTicks > 0 && !ferryStunned
-    ? (cfg.UNITS.ferry.lumpAmount * state.units.ferry * multFactor(state, 'ferry')) /
+    ? (cfg.UNITS.ferry.lumpAmount * state.units.ferry * multFactor(state, 'ferry', cfg)) /
       (cfg.UNITS.ferry.lumpEveryTicks * (cfg.TICK_MS / 1000))
     : 0;
   return (baseRatePerSec(state, cfg) + lumps) *
@@ -51,7 +55,7 @@ export function effectiveRatePerSec(state, cfg) {
 
 export function tapPower(state, cfg) {
   let mult = 1;
-  for (const id of ['babyfae', 'pincers', 'tweezers', 'gloves']) {
+  for (const id of ['babyfae', 'pincers', 'tweezers', 'gloves', 'moonclippers']) {
     if (state.upgrades[id]) mult *= 2;
   }
   let power = cfg.TAP.BASE * mult;
@@ -124,9 +128,18 @@ export function revealChecks(state, cfg) {
     'up:starlight': prevTap('gloves') && afford(cfg.UPGRADES.starlight.cost),
     'up:afterglow': state.buys.sprite >= 3 && afford(cfg.UPGRADES.afterglow.cost),
     'up:sandman': state.tiptoes >= 2 && afford(cfg.UPGRADES.sandman.cost),
-    'up:dreamledger': state.beatsSeen.includes('a1-rounds') && state.lifetime >= 5000 && afford(cfg.UPGRADES.dreamledger.cost),
+    'up:dreamledger': state.beatsSeen.includes('a1-rounds') && state.lifetime >= 2000 && afford(cfg.UPGRADES.dreamledger.cost),
     'up:nightledger': state.upgrades.dreamledger && afford(cfg.UPGRADES.nightledger.cost),
     'up:lucidcontract': state.upgrades.nightledger && afford(cfg.UPGRADES.lucidcontract.cost),
+    'up:sockradar': state.buys.scout >= 10 && afford(cfg.UPGRADES.sockradar.cost),
+    'up:madrid': state.buys.mouse >= 10 && afford(cfg.UPGRADES.madrid.cost),
+    'up:encore': state.buys.sprite >= 8 && afford(cfg.UPGRADES.encore.cost),
+    'up:feltslippers': state.buys.phantom >= 5 && afford(cfg.UPGRADES.feltslippers.cost),
+    'up:lighthouse': state.buys.ferry >= 3 && afford(cfg.UPGRADES.lighthouse.cost),
+    'up:manifestii': state.buys.barge >= 2 && afford(cfg.UPGRADES.manifestii.cost),
+    'up:notary': state.buys.pact >= 3 && afford(cfg.UPGRADES.notary.cost),
+    'up:annexforms': state.buys.ministry >= 2 && afford(cfg.UPGRADES.annexforms.cost),
+    'up:moonclippers': prevTap('starlight') && afford(cfg.UPGRADES.moonclippers.cost),
     'loom': state.stirShown && afford(cfg.LOOM.base),
   };
 }
