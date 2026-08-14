@@ -15,6 +15,18 @@ The memory comes back in fragments while the numbers go up.
 | Tests | `npm test` (bare `node --test`) — playthrough bot, reachability, determinism, pacing |
 | Dev tools | In-app panel on localhost or `?dev=1`: Script · Balance · Names · VFX · State · Pacing |
 
+## Night cycle
+
+A night is approximately 35 minutes of productive play. A dawn meter counts
+down the remaining night; idle time does not burn it. At dawn, production
+stops and taps pause; the night is stamped into the log. A dusk gap of minimum
+2 hours of real time follows. Being away counts during this gap. The offline
+ledgers earn during the gap within their caps. At dusk, the contract board
+appears with 2–3 jobs to choose from; your pick resolves by the next dawn.
+Streaks at 3, 7, and 14 nights pay a lasting bonus. Three tabs hold the
+interface: tonight (current state and contracts), the log (history of nights),
+and the roost (settings and acknowledgements).
+
 ## Run
 
 ```
@@ -40,10 +52,12 @@ runUntil, grant, offline}` for scripted play.
 
 Every tunable — story beats and responses, the difficulty scaling matrix,
 every player-visible name, animation timings, sound gains — has a control.
-Edits drive the live game and persist as a partial override layer in
-localStorage, merged over frozen defaults at boot. "Copy all overrides"
-exports the diff; committing a tuning means pasting values into
-`js/config/*.js` defaults.
+The Balance tab includes night knobs (NIGHT/CONTRACTS constants) and
+skip-to-dawn / skip-to-dusk buttons. Edits drive the live game and persist as
+a partial override layer in localStorage, merged over frozen defaults at boot.
+"Copy all overrides" exports the diff; committing a tuning means pasting
+values into `js/config/*.js` defaults. The Script tab's act-jump includes act
+2.5 (night-cycle content).
 
 The Pacing tab runs the real engine headless with a competent-not-optimal
 bot and reports act timing, reveal cadence, wakes, and beat reachability —
