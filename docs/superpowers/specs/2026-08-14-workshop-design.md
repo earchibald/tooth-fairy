@@ -39,10 +39,9 @@ the banner freezes for the session. Fix: `makeBatcher` gains `pending()` (return
 
 ## 3. The banner (full-width feedback strip)
 
-Layout: the tray becomes two rows. Row 1: counter + rate + dawn meter, tray verbs.
-Row 2: the `conveyorWrap` spans the tray's full width; the tap button stays centered
-on it. CSS-only restructure of `.tray` (flex column; `.trayTop` row wraps
-counterWrap + verbs; conveyorWrap `width: 100%`).
+Layout: unchanged — the tray already stacks counter, verbs, and the conveyor strip,
+and `conveyorWrap` already spans the full tray width with the tap button centered.
+"Full-width banner" is a responsibility change, not a layout change.
 
 Four feedback channels, all drawn on the existing conveyor canvas (one rAF loop):
 
