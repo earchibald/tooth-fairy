@@ -50,6 +50,11 @@ python3 -m http.server 8123
 Serve on a NEW port after editing JS — Chrome caches ES modules through
 cache-busting params.
 
+For the Workshop (dev panel → Workshop tab) with working "save to project" and
+"release" buttons, serve with the workshop server instead:
+
+    node scripts/workshop-server.js        # http://127.0.0.1:8123/?dev=1
+
 ## Runtime flags
 
 | Flag | Effect |

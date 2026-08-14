@@ -59,3 +59,104 @@ test('vfx.juice defaults exist with the spec values', () => {
   assert.equal(vfx.juice.buySweep.alpha, 0.22);
   assert.equal(vfx.juice.ramp.rateHi, 1e9);
 });
+
+import { createWorkshopServer, RELEASE_STEPS } from '../scripts/workshop-server.js';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+function tempRoot() {
+  const root = mkdtempSync(join(tmpdir(), 'tf-workshop-'));
+  mkdirSync(join(root, 'js', 'config'), { recursive: true });
+  writeFileSync(join(root, 'index.html'), '<!doctype html><title>t</title>');
+  return root;
+}
+
+async function withServer(opts, fn) {
+  const server = createWorkshopServer(opts);
+  await new Promise((res) => server.listen(0, '127.0.0.1', res));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try { return await fn(base); }
+  finally { await new Promise((res) => server.close(res)); }
+}
+
+test('save-vfx writes tuned.js as importable ESM that round-trips', async () => {
+  const root = tempRoot();
+  await withServer({ root }, async (base) => {
+    const res = await fetch(base + '/api/save-vfx', {
+      method: 'POST',
+      body: JSON.stringify({ vfx: { juice: { tapPop: { scale: 1.3 } } } }),
+    });
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).ok, true);
+  });
+  const file = join(root, 'js', 'config', 'tuned.js');
+  assert.ok(readFileSync(file, 'utf8').startsWith('// Written by the Workshop'));
+  const mod = await import(pathToFileURL(file).href);
+  assert.deepEqual(mod.TUNED, { juice: { tapPop: { scale: 1.3 } } });
+});
+
+test('save-vfx rejects bad bodies', async () => {
+  const root = tempRoot();
+  await withServer({ root }, async (base) => {
+    for (const body of ['not json', JSON.stringify({}), JSON.stringify({ vfx: [1] })]) {
+      const res = await fetch(base + '/api/save-vfx', { method: 'POST', body });
+      assert.equal(res.status, 400);
+    }
+  });
+});
+
+test('release runs the step sequence and stops at the first failure', async () => {
+  // All-ok runner: `git diff --cached --quiet` exit 0 means NOTHING staged,
+  // so the release short-circuits cleanly before commit/push.
+  const calls = [];
+  const okRunner = async (cmd, args) => { calls.push([cmd, ...args]); return { ok: true, output: '' }; };
+  await withServer({ root: tempRoot(), runner: okRunner }, async (base) => {
+    const res = await fetch(base + '/api/release', { method: 'POST' });
+    const out = await res.json();
+    assert.equal(out.ok, true);
+    assert.equal(out.steps.length, 3);                  // tests, stage, check
+    assert.equal(out.steps.at(-1).output, 'nothing to release');
+  });
+  assert.equal(calls[0][0], 'node');                    // tests first
+  assert.ok(!calls.some((c) => c[0] === 'git' && c[1] === 'push'));
+  assert.ok(calls.every((c) => c[0] !== 'git' || c.every((a) => a !== '-A')));
+
+  const calls2 = [];
+  const failRunner = async (cmd, args) => {
+    calls2.push([cmd, ...args]);
+    return { ok: cmd !== 'node', output: cmd === 'node' ? '1 failing' : '' };
+  };
+  await withServer({ root: tempRoot(), runner: failRunner }, async (base) => {
+    const out = await (await fetch(base + '/api/release', { method: 'POST' })).json();
+    assert.equal(out.ok, false);
+    assert.equal(out.steps.length, 1);                  // stopped at tests
+  });
+  assert.equal(calls2.length, 1);
+});
+
+test('release pushes when the diff check reports staged changes', async () => {
+  const calls = [];
+  const runner = async (cmd, args) => {
+    calls.push([cmd, ...args]);
+    const isDiff = cmd === 'git' && args[0] === 'diff';
+    return { ok: !isDiff, output: '' };   // diff exit 1 = something staged
+  };
+  await withServer({ root: tempRoot(), runner }, async (base) => {
+    const out = await (await fetch(base + '/api/release', { method: 'POST' })).json();
+    assert.equal(out.ok, true);
+    assert.equal(out.steps.length, RELEASE_STEPS.length);
+  });
+  assert.ok(calls.some((c) => c[0] === 'git' && c[1] === 'push'));
+});
+
+test('static serving guards path traversal', async () => {
+  await withServer({ root: tempRoot() }, async (base) => {
+    assert.equal((await fetch(base + '/index.html')).status, 200);
+    const res = await fetch(base + '/..%2f..%2fetc%2fpasswd');
+    assert.ok(res.status === 403 || res.status === 404);
+    assert.equal((await fetch(base + '/api/save-vfx')).status, 405);   // GET
+    assert.equal((await fetch(base + '/api/nope', { method: 'POST' })).status, 404);
+  });
+});
