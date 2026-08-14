@@ -469,6 +469,9 @@ function tabState(body, ctx) {
     b.addEventListener('click', () => ctx.dispatch('devGrant', { n }));
     bar1.appendChild(b);
   }
+  const b10 = el('button', null, 'grant 10★');
+  b10.addEventListener('click', () => ctx.dispatch('devGrantStars', { n: 10 }));
+  bar1.appendChild(b10);
   body.append(el('h3', null, 'grant'), bar1);
 
   body.appendChild(el('h3', null, 'meters'));

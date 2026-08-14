@@ -27,6 +27,14 @@ Streaks at 3, 7, and 14 nights pay a lasting bonus. Three tabs hold the
 interface: tonight (current state and contracts), the log (history of nights),
 and the roost (settings and acknowledgements).
 
+## Another town (prestige)
+
+Finishing a town banks stars: the square root of lifetime teeth, plus 10 stars
+for reaching the ending. Each star earned adds +2% production, forever, across
+every town that follows. The sky shop for spending stars sits at the top of
+the roost tab. Town 2 and beyond start at act 1, carrying that production
+bonus forward from the start.
+
 ## Run
 
 ```

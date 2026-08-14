@@ -15,6 +15,9 @@ test('the bot buys sky cards and departs into a faster second town', () => {
   // and departs by ~100k steps (see test/playthrough.test.js's 400k budget
   // for the same, unprestiged, town-1-only trajectory); 200k comfortably
   // covers two full towns without ballooning test runtime.
+  // Do not raise maxTicks casually: the bot keeps departing every postEnd,
+  // and TOWN_LEDGER_CAP is 10 — more towns evict townLedger[0], breaking the
+  // town-1 comparison below.
   let afterTown1 = null;
   const { state } = runBot(cfg, script, {
     maxTicks: 200000,
