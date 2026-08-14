@@ -12,6 +12,7 @@ import { createConveyor } from './conveyor.js';
 import { createTabs } from './tabs.js';
 import { createLog } from './log.js';
 import { createBoard } from './board.js';
+import { attachTip } from './tooltip.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -27,7 +28,7 @@ export function buildUI(app, ctx) {
   const topbar = el('header', 'topbar');
   const beliefMeter = el('div', 'meter belief');
   beliefMeter.hidden = true;
-  beliefMeter.title = names.ui.beliefHint;
+  attachTip(beliefMeter, names.tips.belief);
   const beliefLabel = el('div', 'label');
   const beliefName = el('span', null, names.meters.belief);
   const beliefVal = el('span');
@@ -39,7 +40,7 @@ export function buildUI(app, ctx) {
 
   const stirMeter = el('div', 'meter stir');
   stirMeter.hidden = true;
-  stirMeter.title = names.ui.stirHint;
+  attachTip(stirMeter, names.tips.stir);
   const stirLabel = el('div', 'label');
   const stirName = el('span', null, names.meters.stir);
   const stirVal = el('span');
@@ -55,6 +56,7 @@ export function buildUI(app, ctx) {
   notesChip.hidden = true;
   notesChip.dataset.testid = 'notes-chip';
   notesChip.addEventListener('click', () => dispatch('readNote'));
+  attachTip(notesChip, names.tips.notes);
   const journalBtn = el('button', 'iconbtn', '☾');
   journalBtn.title = names.verbs.journal;
   journalBtn.setAttribute('aria-label', names.verbs.journal);
@@ -67,6 +69,9 @@ export function buildUI(app, ctx) {
 
   // ---- tabs ----
   const tabs = createTabs(app, names);
+  attachTip(tabs.bar.children[0], names.tips.tabTonight);
+  attachTip(tabs.bar.children[1], names.tips.tabLog);
+  attachTip(tabs.bar.children[2], names.tips.tabRoost);
   app.appendChild(tabs.bar);
   app.appendChild(tabs.panels.tonight);
   app.appendChild(tabs.panels.log);
@@ -113,15 +118,17 @@ export function buildUI(app, ctx) {
   const count = el('div', 'count', '0');
   count.dataset.testid = 'tooth-count';
   const rate = el('div', 'rate', '');
+  attachTip(rate, names.tips.rate);
   counterWrap.append(count, rate);
   const dawn = el('div', 'dawnMeter');
   dawn.hidden = true;
+  attachTip(dawn, names.tips.dawn);
   counterWrap.appendChild(dawn);
   const verbs = el('div', 'trayVerbs');
   const tiptoeBtn = el('button', 'chip');
   tiptoeBtn.hidden = true;
   tiptoeBtn.dataset.testid = 'tiptoe';
-  tiptoeBtn.title = names.ui.tiptoeHint;
+  attachTip(tiptoeBtn, names.tips.tiptoe);
   tiptoeBtn.addEventListener('click', () => dispatch('tiptoe'));
   verbs.appendChild(tiptoeBtn);
   const conveyorWrap = el('div', 'conveyorWrap');

@@ -1,9 +1,12 @@
 // The contract board: 2-3 job cards at dusk, pick one, watch it resolve.
+import { attachTip } from './tooltip.js';
+
 export function createBoard(container, { names, contracts, dispatch }) {
   const root = document.createElement('div');
   root.className = 'board';
   root.dataset.testid = 'contract-board';
   root.hidden = true;
+  attachTip(root, names.tips.board);
   const title = document.createElement('div');
   title.className = 'boardTitle';
   title.textContent = names.ui.boardTitle;

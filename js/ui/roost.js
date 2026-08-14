@@ -5,6 +5,7 @@
 import { nextCost, maxAffordable, fmt } from '../engine/math.js';
 import { multTier, multOwned, loomCost } from '../engine/predicates.js';
 import { UNIT_IDS } from '../engine/state.js';
+import { attachTip } from './tooltip.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -68,6 +69,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
     const n = names.units[unit];
     const c = makeCard({ key: 'unit:' + unit, title: n.name, testid: 'card-' + unit });
     c.flavor.textContent = n.flavor;
+    attachTip(c.node, names.tips.unitCard);
     const one = buyButton(names.ui.buy, 'buy-' + unit);
     const max = buyButton('max', 'buy-' + unit + '-max');
     max.btn.classList.add('maxBtn');
@@ -101,6 +103,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
 
     // Springboard (×2) card for this unit.
     const m = makeCard({ key: 'mult:' + unit, title: names.multNames[unit], testid: 'card-mult-' + unit });
+    attachTip(m.node, names.tips.springboard);
     const mBuy = buyButton(names.ui.buy, 'buy-mult-' + unit);
     mBuy.btn.addEventListener('click', () => dispatch('buyMult', { unit }));
     m.buys.append(mBuy.btn);
@@ -129,6 +132,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
   {
     const c = makeCard({ key: 'loom', title: names.loom.name, testid: 'card-loom' });
     c.flavor.textContent = names.loom.flavor;
+    attachTip(c.node, names.tips.loom);
     const b = buyButton(names.ui.buy, 'buy-loom');
     b.btn.addEventListener('click', () => dispatch('buyLoom'));
     c.buys.append(b.btn);
@@ -173,6 +177,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
     const c = makeCard({ key: 'up:' + id, title: n.name, testid: 'card-' + id });
     c.info.textContent = upgradeInfo[id] || '';
     c.flavor.textContent = n.flavor;
+    attachTip(c.node, n.flavor);
     const b = buyButton(names.ui.buy, 'buy-' + id);
     b.btn.addEventListener('click', () => dispatch('buyUpgrade', { id }));
     c.buys.append(b.btn);

@@ -186,6 +186,16 @@ export const ACTIONS = {
     if (typeof arg.act === 'number') state.act = arg.act;
     bump(state);
   },
+  devSkipToDawn(state, cfg) {
+    if (!state.nightShown || state.nightPhase !== 'night') return;
+    state.nightTicksLeft = 1;
+    bump(state);
+  },
+  devSkipToDusk(state, cfg) {
+    if (!state.nightShown || state.nightPhase !== 'dawn') return;
+    state.duskGapS = 0.1;
+    bump(state);
+  },
 };
 
 export function dispatch(state, cfg, action, arg) {

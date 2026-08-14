@@ -309,6 +309,13 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
 .jobCard[disabled] { opacity: 0.35; cursor: default; }
 .jobCard.picked { border-color: var(--accent); }
 .jobCard.done { border-color: var(--glow); box-shadow: 0 0 12px #ffffff18; }
+
+/* ---------- tooltips ---------- */
+.tipCard {
+  position: fixed; z-index: 99; background: var(--surface); color: var(--ink);
+  border: 1px solid #ffffff22; border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; line-height: 1.4; box-shadow: 0 4px 18px #0008;
+}
 .jobReward { margin-top: 6px; color: var(--dim); font-size: 11px; }
 .dawnMeter { font-size: 10px; letter-spacing: 0.1em; color: var(--dim); margin-top: 2px; }
 .morningCard {

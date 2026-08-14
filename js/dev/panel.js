@@ -486,12 +486,20 @@ function tabState(body, ctx) {
   }
 
   const bar2 = el('div', 'devBar');
-  for (const act of [0, 1, 2, 3]) {
-    const b = el('button', null, 'act ' + act);
+  for (const act of [0, 1, 2, 25, 3]) {
+    const b = el('button', null, 'act ' + (act === 25 ? '2.5' : act));
     b.addEventListener('click', () => ctx.dispatch('devSet', { act }));
     bar2.appendChild(b);
   }
   body.append(el('h3', null, 'act'), bar2);
+
+  const bar2b = el('div', 'devBar');
+  const skipDawn = el('button', null, 'skip to dawn');
+  skipDawn.addEventListener('click', () => ctx.dispatch('devSkipToDawn'));
+  const skipDusk = el('button', null, 'skip to dusk');
+  skipDusk.addEventListener('click', () => ctx.dispatch('devSkipToDusk'));
+  bar2b.append(skipDawn, skipDusk);
+  body.append(el('h3', null, 'night'), bar2b);
 
   const bar3 = el('div', 'devBar');
   for (const [label, mins] of [['+1m', 1], ['+10m', 10], ['+1h', 60]]) {
