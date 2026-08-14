@@ -21,13 +21,13 @@ test('the bot reaches the ending and sees the whole spine', () => {
 });
 
 test('every beat is reachable by the bot', () => {
-  const { state } = runBot(cfg, script, { maxTicks: 400000, seed: 2 });
+  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 2 });
   const missing = script.beats.filter((b) => !state.beatsSeen.includes(b.id));
   assert.deepEqual(missing.map((b) => b.id), [], 'unreached beats');
 });
 
 test('every aside is reachable by the bot', () => {
-  const { state } = runBot(cfg, script, { maxTicks: 400000, seed: 3 });
+  const { state } = runBot(cfg, script, { maxTicks: 600000, seed: 3 });
   const missing = script.asides.filter((a) => !state.asidesSeen.includes(a.id));
   assert.deepEqual(missing.map((a) => a.id), [], 'unreached asides');
 });

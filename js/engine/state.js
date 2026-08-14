@@ -2,9 +2,10 @@
 // nothing else does. `sfx` is a transient event queue the renderer drains —
 // feedback fires on effect, never on intent.
 
-export const UNIT_IDS = ['scout', 'mouse', 'sprite', 'phantom', 'ferry', 'pact', 'ministry'];
+export const UNIT_IDS = ['scout', 'mouse', 'bunny', 'sprite', 'phantom', 'owl',
+  'ferry', 'barge', 'pact', 'ministry', 'starwrights'];
 
-const zeroUnits = () => ({ scout: 0, mouse: 0, sprite: 0, phantom: 0, ferry: 0, pact: 0, ministry: 0 });
+const zeroUnits = () => Object.fromEntries(UNIT_IDS.map((u) => [u, 0]));
 
 export function createState(seed = 1) {
   return {

@@ -15,15 +15,20 @@ export const DEFAULTS = Object.freeze({
   UNITS: Object.freeze({
     scout:    Object.freeze({ base: 50,       growth: 1.15, rate: 1,     noise: 0.5 }),
     mouse:    Object.freeze({ base: 600,      growth: 1.14, rate: 10,    noise: 1.5 }),
+    bunny:    Object.freeze({ base: 5000,     growth: 1.14, rate: 60,    noise: 3 }),
     sprite:   Object.freeze({ base: 2500,     growth: 1.05, rate: 40,    noise: 6,
                               lifeTicks: 450, afterglowFrac: 0.5,
                               swarmCap: 8, capPerMult: 4 }),
     phantom:  Object.freeze({ base: 12000,    growth: 1.13, rate: 120,   noise: 0 }),
+    owl:      Object.freeze({ base: 45000,    growth: 1.13, rate: 300,   noise: 0.2 }),
     ferry:    Object.freeze({ base: 140000,   growth: 1.12, rate: 0,     noise: 0.3,
                               lumpAmount: 12000, lumpEveryTicks: 60, noiseSpike: 6 }),
+    barge:    Object.freeze({ base: 400000,   growth: 1.18, rate: 0,     noise: 0.5,
+                              manifestFrac: 0.05, manifestCap: 0.25 }),
     pact:     Object.freeze({ base: 1.2e6,    growth: 1.15, rate: 6000,  noise: 0,
                               stirFactor: 0.96, netBonusPer: 0.01, netBonusCap: 3 }),
     ministry: Object.freeze({ base: 8e6,      growth: 1.15, rate: 60000, noise: 0 }),
+    starwrights: Object.freeze({ base: 4e8,   growth: 1.25, rate: 1e6,   noise: 0 }),
   }),
 
   // Per-unit ×2 springboards become buyable at these owned counts.

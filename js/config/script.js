@@ -56,6 +56,12 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'someone has to', trigger: { type: 'taps', count: 250 } },
 
     // ---- ACT 2 · THE OPERATION ----
+    { id: 'a2-bunny', act: 2, register: 'memory',
+      text: 'the dust bunnies were always here. under every bed. listening. they\'d like dental now, and a name each.',
+      response: 'granted', trigger: { type: 'buy', unit: 'bunny', count: 1 } },
+    { id: 'a2-owl', act: 2, register: 'memory',
+      text: 'the owl took the job without asking what it pays. it says it has seen the tall one in the doorway before. years ago. watching, even then.',
+      response: 'noted. unsettling.', trigger: { type: 'buy', unit: 'owl', count: 1 } },
     { id: 'a2-stir', act: 2, register: 'memory',
       text: 'the houses are starting to stir. we are many now, and many is loud.',
       response: 'hush then', trigger: { type: 'stirReveal' }, effects: { act: 2 } },
@@ -124,6 +130,9 @@ export const SCRIPT_DEFAULTS = Object.freeze({
     { id: 'a3-ministry', act: 3, register: 'memory',
       text: "the ministry always existed. i just kept losing the door. it's behind the coats. it was always behind the coats.",
       response: 'naturally', trigger: { type: 'buy', unit: 'ministry', count: 1 } },
+    { id: 'a3-starwrights', act: 3, register: 'memory',
+      text: "the starwrights don't gather teeth. they take them up. i asked up where. they pointed. i didn't ask again.",
+      response: 'up.', trigger: { type: 'buy', unit: 'starwrights', count: 1 } },
     { id: 'a3-almost', act: 3, register: 'memory',
       text: "i'm near the bottom of the ledger now. the oldest page. my handwriting, but smaller. a name i almost say out loud.",
       response: '...', trigger: { type: 'lifetime', value: 5000000, minAct: 3 } },
@@ -143,6 +152,12 @@ export const SCRIPT_DEFAULTS = Object.freeze({
 
   // One-shot stage asides: non-pausing, fade after a beat's read time.
   asides: [
+    { id: 'as-bunny10', trigger: { type: 'buy', unit: 'bunny', count: 10 },
+      text: 'the bunnies have names now. all of them are gerald.' },
+    { id: 'as-owl5', trigger: { type: 'buy', unit: 'owl', count: 5 },
+      text: 'five owls. the attic minutes are exhaustive.' },
+    { id: 'as-starwrights3', trigger: { type: 'buy', unit: 'starwrights', count: 3 },
+      text: 'three crews on the ladder. the sky takes deliveries now.' },
     { id: 'as-scout2',  trigger: { type: 'buy', unit: 'scout', count: 2 },
       text: 'two of them compare socks.' },
     { id: 'as-scout10', trigger: { type: 'buy', unit: 'scout', count: 10 },

@@ -107,11 +107,15 @@ export function revealChecks(state, cfg) {
   return {
     'unit:scout': state.upgrades.babyfae && afford(cfg.UNITS.scout.base),
     'unit:mouse': state.buys.scout >= 1 && afford(cfg.UNITS.mouse.base),
+    'unit:bunny': state.act >= 2 && afford(cfg.UNITS.bunny.base),
     'unit:sprite': state.act >= 2 && afford(cfg.UNITS.sprite.base),
     'unit:phantom': state.act >= 2 && afford(cfg.UNITS.phantom.base),
+    'unit:owl': state.act >= 2 && state.buys.bunny >= 3 && afford(cfg.UNITS.owl.base),
     'unit:ferry': state.act >= 2 && afford(cfg.UNITS.ferry.base),
+    'unit:barge': state.act >= 25 && afford(cfg.UNITS.barge.base),
     'unit:pact': state.act >= 3, // the fold beat is the ceremony; the card may tease
     'unit:ministry': state.buys.pact >= 3, // the ledger beat is the hint; the card teases
+    'unit:starwrights': state.buys.ministry >= 1 && afford(cfg.UNITS.starwrights.base),
 
     'up:babyfae': state.act >= 1,
     'up:pincers': prevTap('babyfae') && state.buys.scout >= 3 && afford(cfg.UPGRADES.pincers.cost),

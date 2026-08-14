@@ -8,7 +8,8 @@ import { dispatch } from '../engine/actions.js';
 import { tick, runOffline } from '../engine/tick.js';
 import { nextCost } from '../engine/math.js';
 
-const BUY_PRIORITY = ['ministry', 'pact', 'ferry', 'phantom', 'sprite', 'mouse', 'scout'];
+const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl',
+  'phantom', 'sprite', 'bunny', 'mouse', 'scout'];
 const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
   'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract'];
 

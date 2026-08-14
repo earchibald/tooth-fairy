@@ -90,3 +90,15 @@ test('with a ledger, a long absence plays nights and earns within caps', () => {
   assert.ok(gain.teeth > 0);
   assert.ok(s.nightTicksLeft < cfg.NIGHT.LENGTH_TICKS, 'offline burned night time');
 });
+
+test('new units produce and reveal in act order', () => {
+  const s = nightPlaying();
+  s.units.bunny = 2; s.buys.bunny = 2;
+  s.units.owl = 1; s.buys.owl = 1;
+  const before = s.teeth;
+  for (let i = 0; i < 10; i++) tick(s, cfg, noStory);
+  assert.ok(s.teeth > before);
+  s.teeth = 1e9; s.lifetime = 1e9; s.act = 3; s.buys.ministry = 1;
+  tick(s, cfg, noStory);
+  assert.ok(s.revealed['unit:starwrights']);
+});

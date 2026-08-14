@@ -6,11 +6,15 @@ export const NAME_DEFAULTS = Object.freeze({
   units: Object.freeze({
     scout:    Object.freeze({ name: 'TOOTH SCOUT',       flavor: 'checks under pillows. mostly finds socks.' }),
     mouse:    Object.freeze({ name: 'PILLOW MOUSE',      flavor: 'an old colleague from madrid. very professional.' }),
+    bunny:    Object.freeze({ name: 'DUST BUNNY',        flavor: 'lives under the bed. always has. finally on payroll.' }),
     sprite:   Object.freeze({ name: 'MAYFLY SPRITE',     flavor: 'burns bright. burns out. knows it. does not care.' }),
     phantom:  Object.freeze({ name: 'FLOSS PHANTOM',     flavor: 'makes no sound at all. charges accordingly.' }),
+    owl:      Object.freeze({ name: 'ATTIC OWL',         flavor: 'sees everything. says nothing. bills monthly.' }),
     ferry:    Object.freeze({ name: 'TOOTH FERRY',       flavor: 'yes, it is spelled like that. no, nobody laughs anymore.' }),
+    barge:    Object.freeze({ name: 'MOLAR BARGE',       flavor: 'sails at dawn with the night\'s manifest. pays on return.' }),
     pact:     Object.freeze({ name: 'PARENT PACT',       flavor: 'they were doing it anyway. now it is official.' }),
     ministry: Object.freeze({ name: 'MINISTRY OF MOLARS', flavor: 'form 32-b: request for additional night.' }),
+    starwrights: Object.freeze({ name: 'STARWRIGHTS',    flavor: 'they take the teeth upstairs. don\'t ask about the ladder.' }),
   }),
   upgrades: Object.freeze({
     babyfae:      Object.freeze({ name: 'BABY FAE',        flavor: 'small. eager. counts on her fingers. two per tap now.' }),
@@ -27,9 +31,10 @@ export const NAME_DEFAULTS = Object.freeze({
   loom: Object.freeze({ name: 'LULLABY LOOM', flavor: 'weaves a hush you can stack.' }),
   multName: 'apiece',            // threshold upgrade label suffix: "×2 apiece"
   multNames: Object.freeze({
-    scout: 'SCOUT GOGGLES', mouse: 'MOUSE MAPS', sprite: 'BRIGHTER WICKS',
-    phantom: 'DEEPER SILENCE', ferry: 'SECOND DECK', pact: 'PHONE TREE',
-    ministry: 'ANNEX WING',
+    scout: 'SCOUT GOGGLES', mouse: 'MOUSE MAPS', bunny: 'BROOM DODGING',
+    sprite: 'BRIGHTER WICKS', phantom: 'DEEPER SILENCE', owl: 'WIDER EYES',
+    ferry: 'SECOND DECK', barge: 'DEEPER HOLD', pact: 'PHONE TREE',
+    ministry: 'ANNEX WING', starwrights: 'TALLER LADDER',
   }),
   verbs: Object.freeze({
     tiptoe: 'TIPTOE', readNote: 'READ A NOTE', journal: 'JOURNAL',

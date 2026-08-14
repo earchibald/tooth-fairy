@@ -47,6 +47,9 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
 
   function unitInfo(unit) {
     const def = cfg.UNITS[unit];
+    if (unit === 'barge') {
+      return `${(def.manifestFrac * 100).toFixed(0)}% of each night's gathering apiece, paid at dusk`;
+    }
     if (unit === 'ferry') {
       const secs = def.lumpEveryTicks * cfg.TICK_MS / 1000;
       return `${fmt(def.lumpAmount)} teeth every ${secs}s apiece`;
