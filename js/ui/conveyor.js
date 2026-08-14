@@ -3,27 +3,8 @@
 // swarm. The rAF loop parks when nothing is in flight.
 
 import { toothPath2D } from './tooth.js';
-
-// Pure batching: pools one credit per productive tick and cuts a batch every
-// ticksPerBatch credits, so a batch is exactly that many ticks of income. The
-// caller sets ticksPerBatch to one second so the landing float agrees with
-// the ≈/s readout. Exported for headless tests; the conveyor is its only user.
-export function makeBatcher(ticksPerBatch) {
-  let pool = 0;
-  let ticks = 0;
-  return {
-    // Returns the finished batch amount, or null while pooling.
-    credit(amount, canLaunch) {
-      pool += amount;
-      ticks++;
-      if (ticks < ticksPerBatch || !canLaunch) return null;
-      const batch = pool;
-      pool = 0;
-      ticks = 0;
-      return batch;
-    },
-  };
-}
+import { makeBatcher } from './juice.js';
+export { makeBatcher } from './juice.js';
 
 export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   const path = toothPath2D();
@@ -93,7 +74,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const x = startX + (w / 2 - startX) * ease;
       drawTooth(x, y - Math.sin(t * Math.PI) * 7, size, vfx.motif.inboundColor, 0.5 + t * 0.5);
     }
-    if (sprites.length || pool > 0) requestAnimationFrame(frame);
+    if (sprites.length || batcher.pending()) requestAnimationFrame(frame);
     else { running = false; drawStatic(); }
   }
 

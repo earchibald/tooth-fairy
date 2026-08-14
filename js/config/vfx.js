@@ -31,6 +31,15 @@ export const VFX_DEFAULTS = Object.freeze({
   }),
   wake: Object.freeze({ flashMs: 900 }),
   sky: Object.freeze({ starsMax: 400, twinkleS: 6 }),
+  juice: Object.freeze({    // banner + tap feedback; the Workshop tab tunes these
+    tapPop:    Object.freeze({ scale: 1.12, ms: 110 }),
+    tapGlow:   Object.freeze({ size: 18, alpha: 0.5, ms: 260 }),
+    tapSparks: Object.freeze({ count: 6, size: 2.2, spreadPx: 34, lifeMs: 420 }),
+    inbound:   Object.freeze({ glowSize: 10, glowAlpha: 0.35, trailPerS: 14, trailLife: 500 }),
+    landSparks:Object.freeze({ count: 5, size: 2, lifeMs: 380 }),
+    buySweep:  Object.freeze({ alpha: 0.22, ms: 700 }),
+    ramp:      Object.freeze({ rateLo: 10, rateHi: 1e9, sizeHi: 1.6, glowHi: 1.8, trailHi: 2.5, scrollHi: 3 }),
+  }),
   palettes: Object.freeze({   // data-act drives these custom properties
     0: Object.freeze({ bg: '#10131c', surface: '#171b27', ink: '#d7dceb', dim: '#8b93ad', accent: '#7b96c9', glow: '#a8c0ea' }),
     1: Object.freeze({ bg: '#0e1220', surface: '#151a2b', ink: '#dde2f0', dim: '#8f97b2', accent: '#84a1d8', glow: '#b4cbf2' }),
