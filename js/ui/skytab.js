@@ -98,7 +98,7 @@ export function createSkyTab(root, { cfg, names, vfx, dispatch }) {
       if (balance.textContent !== bal) balance.textContent = bal;
       for (const c of cards) {
         const placed = (state.constellations && state.constellations[c.id]) || 0;
-        const done = placed >= c.def.slots;
+        const done = figureDone(state, cfg, c.id);
         const sig = placed + ':' + (state.stars >= 1);
         if (c.cache.sig === sig) continue;
         c.cache.sig = sig;

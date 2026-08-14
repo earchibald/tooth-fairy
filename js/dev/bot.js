@@ -6,7 +6,7 @@
 import { createState, departTown } from '../engine/state.js';
 import { dispatch } from '../engine/actions.js';
 import { tick, runOffline } from '../engine/tick.js';
-import { nextCost, starsAtLifetime } from '../engine/math.js';
+import { nextCost, starsAtLifetime, figureDone } from '../engine/math.js';
 
 const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl',
   'phantom', 'sprite', 'bunny', 'mouse', 'scout'];
@@ -54,7 +54,9 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
             if (!state.sky[id2] && state.stars >= cfg.SKY[id2].cost) dispatch(state, cfg, 'buySky', { id: id2 });
           }
           botTrace(state, cfg);
-          events.push(`(town ${state.town} done: +${starsAtLifetime(state.lifetime, cfg)} stars)`);
+          const gained = starsAtLifetime(state.lifetime, cfg) +
+            (figureDone(state, cfg, 'littlest') ? cfg.CONSTELLATIONS.littlest.departBonus : 0);
+          events.push(`(town ${state.town} done: +${gained} stars)`);
           const next = departTown(state, cfg);
           if (next) state = next;
           continue;

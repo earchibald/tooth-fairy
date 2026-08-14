@@ -184,7 +184,8 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     departBtn.hidden = !state.postEnd;
     if (!state.postEnd) return;
     const armed = performance.now() < armedUntil;
-    const preview = starsAtLifetime(state.lifetime, cfg);
+    const preview = starsAtLifetime(state.lifetime, cfg) +
+      (figureDone(state, cfg, 'littlest') ? cfg.CONSTELLATIONS.littlest.departBonus : 0);
     const label = armed ? names.ui.departConfirm : `${names.ui.depart} (+${preview}★)`;
     if (departBtn.textContent !== label) departBtn.textContent = label;
   }
