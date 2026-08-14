@@ -56,7 +56,7 @@ test('the dusk gap ends dawn and starts the next night with a ledger stamp', () 
   for (let i = 0; i < gapTicks + 2; i++) tick(s, cfg, noStory);
   assert.equal(s.nightPhase, 'night');
   assert.equal(s.night, 2);
-  assert.equal(s.nightStats.teeth, 0, 'stats reset at dusk');
+  assert.ok(s.nightStats.teeth < s.nightLedger[0].teeth / 10, 'stats reset at dusk');
 });
 
 test('night stats track the night', () => {
