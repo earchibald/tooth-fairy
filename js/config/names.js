@@ -45,6 +45,13 @@ export const NAME_DEFAULTS = Object.freeze({
     starcharts:    Object.freeze({ name: 'STAR CHARTS',          flavor: 'the streak is written in the sky. the sky moves with you.' }),
     ferrytoken:    Object.freeze({ name: 'FERRY TOKEN',          flavor: 'the bargemaster honors it on any river.' }),
   }),
+  constellations: Object.freeze({
+    littlest:   Object.freeze({ name: 'THE LITTLEST TOOTH', flavor: 'the first one she ever took. she kept the receipt.' }),
+    fieldmouse: Object.freeze({ name: 'THE FIELD MOUSE',    flavor: 'madrid, remembered in six stars and an ear.' }),
+    quietloom:  Object.freeze({ name: 'THE QUIET LOOM',     flavor: 'the hush, woven big enough to see from anywhere.' }),
+    ferryman:   Object.freeze({ name: 'THE FERRYMAN',       flavor: 'a different river every town. same hat.' }),
+    toothfairy: Object.freeze({ name: 'THE TOOTH FAIRY',    flavor: 'her. up there. finally on the ledger\'s cover.' }),
+  }),
   loom: Object.freeze({ name: 'LULLABY LOOM', flavor: 'weaves a hush you can stack.' }),
   multName: 'apiece',            // threshold upgrade label suffix: "×2 apiece"
   multNames: Object.freeze({
@@ -56,7 +63,7 @@ export const NAME_DEFAULTS = Object.freeze({
   verbs: Object.freeze({
     tiptoe: 'TIPTOE', readNote: 'READ A NOTE', journal: 'JOURNAL',
   }),
-  tabs: Object.freeze({ tonight: 'tonight', log: 'the log', roost: 'the roost' }),
+  tabs: Object.freeze({ tonight: 'tonight', log: 'the log', roost: 'the roost', sky: 'the sky' }),
   meters: Object.freeze({
     teeth: 'TEETH', notes: 'notes', belief: 'BELIEF', stir: 'STIR',
     noise: 'noise', hush: 'hush',
@@ -76,6 +83,7 @@ export const NAME_DEFAULTS = Object.freeze({
     duskIn: 'dusk in about {m} min',
     dawnSoon: 'dawn soon',
     depart: 'another town', departConfirm: 'leave for good?', townLabel: 'town', starsLabel: '★ earned',
+    trace: 'trace a star',
   }),
   tips: Object.freeze({
     belief: 'belief scales every tooth: ×0.5 at 0, ×1.5 at 100. quiet productive nights and notes raise it. wakes cut it.',
@@ -94,6 +102,8 @@ export const NAME_DEFAULTS = Object.freeze({
     stars: 'stars are teeth taken up. each star ever earned adds +2% gathering, in every town, forever. spend them in the sky at the top of the roost.',
     skyCard: 'bought with stars, kept forever: this follows you to every town.',
     depart: 'finish here, bank the stars shown, and start a new town. the sky and its purchases carry over; everything else begins again.',
+    tabSky: 'the figures. stars traced into pictures; a finished picture changes the rules for good.',
+    trace: 'spends one star to light the next point of this figure. the bonus lands when the figure is complete.',
   }),
 });
 

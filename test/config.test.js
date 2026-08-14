@@ -21,4 +21,25 @@ test('every config module imports and builds', () => {
   for (const id of Object.keys(cfg.SKY)) {
     assert.ok(names.sky[id] && names.sky[id].name, `names.sky.${id} missing`);
   }
+
+  const vfx = buildVfx();
+  assert.equal(names.tabs.sky, 'the sky');
+  for (const id of Object.keys(cfg.CONSTELLATIONS)) {
+    assert.ok(names.constellations[id] && names.constellations[id].name,
+      `names.constellations.${id} missing`);
+    const pat = vfx.constellations[id];
+    assert.ok(pat, `vfx.constellations.${id} missing`);
+    assert.equal(pat.points.length, cfg.CONSTELLATIONS[id].slots,
+      `vfx.constellations.${id}: points must equal slots`);
+    for (const [a, b] of pat.edges) {
+      assert.ok(a >= 0 && a < pat.points.length && b >= 0 && b < pat.points.length,
+        `vfx.constellations.${id}: edge [${a},${b}] out of range`);
+    }
+  }
+  const beats = buildScript(null).beats;
+  for (const id of ['sky-trace', 'sky-figure']) {
+    const beat = beats.find((b) => b.id === id);
+    assert.ok(beat, `beat ${id} missing`);
+    assert.equal(beat.minTown, 2, `beat ${id} must carry minTown 2`);
+  }
 });

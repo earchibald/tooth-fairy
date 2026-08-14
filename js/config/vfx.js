@@ -38,6 +38,28 @@ export const VFX_DEFAULTS = Object.freeze({
     25: Object.freeze({ bg: '#081420', surface: '#0e1b2b', ink: '#dfeaf2', dim: '#8fa3b4', accent: '#7fb0c9', glow: '#b8e0ef' }),
     3: Object.freeze({ bg: '#080c1c', surface: '#101527', ink: '#e8ecf7', dim: '#98a0bb', accent: '#93b0e4', glow: '#ccdefc' }),
   }),
+  constellations: Object.freeze({   // fixed figure patterns; points light in order
+    littlest: Object.freeze({
+      points: Object.freeze([[35, 22], [65, 22], [58, 72], [42, 72]]),
+      edges: Object.freeze([[0, 1], [1, 2], [2, 3], [3, 0]]),
+    }),
+    fieldmouse: Object.freeze({
+      points: Object.freeze([[15, 65], [35, 55], [55, 50], [75, 45], [85, 28], [65, 24]]),
+      edges: Object.freeze([[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]),
+    }),
+    quietloom: Object.freeze({
+      points: Object.freeze([[25, 25], [75, 25], [75, 75], [25, 75], [42, 25], [42, 75], [58, 25], [58, 75]]),
+      edges: Object.freeze([[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [6, 7]]),
+    }),
+    ferryman: Object.freeze({
+      points: Object.freeze([[10, 60], [30, 70], [50, 72], [70, 70], [90, 60], [50, 40], [50, 15], [35, 32], [65, 32], [50, 55]]),
+      edges: Object.freeze([[0, 1], [1, 2], [2, 3], [3, 4], [2, 9], [9, 5], [5, 6], [6, 7], [6, 8]]),
+    }),
+    toothfairy: Object.freeze({
+      points: Object.freeze([[50, 8], [42, 20], [58, 20], [50, 30], [35, 40], [65, 40], [20, 30], [80, 30], [28, 55], [72, 55], [42, 60], [58, 60], [46, 86], [54, 86]]),
+      edges: Object.freeze([[0, 1], [0, 2], [1, 3], [2, 3], [3, 4], [3, 5], [4, 6], [5, 7], [6, 8], [7, 9], [4, 10], [5, 11], [10, 12], [11, 13]]),
+    }),
+  }),
   sound: Object.freeze({
     master: 0.5,
     // tap rides the recorded microtick clip (raw peak 1.24); through the 0.5

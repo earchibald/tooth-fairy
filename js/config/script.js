@@ -179,6 +179,14 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'there is another town. there is always another town. the stars come with me — they always did.',
       response: 'pack up', trigger: { type: 'afterBeat', id: 'end-sky' } },
 
+    // ---- THE SKY (constellations, town 2+) ----
+    { id: 'sky-trace', act: 1, register: 'memory', minTown: 2,
+      text: 'i put two stars next to each other and the night held them there. a picture. mine.',
+      response: 'keep going', trigger: { type: 'trace', count: 1 } },
+    { id: 'sky-figure', act: 1, register: 'ledger', minTown: 2,
+      text: 'figure received and recorded. the sky accepts the entry. permanence granted, form C-1.',
+      response: 'permanence.', trigger: { type: 'figure', count: 1 } },
+
     // ---- MIGRATION ----
     { id: 'mig-nights', act: 1, register: 'memory',
       text: 'the nights have gotten longer. i can feel the dawn now, and the rest between. the work is the same. there is just more night to do it in.',
@@ -228,6 +236,8 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'the pajama sentries have a rota now. you respect it.' },
     { id: 'as-town3', minTown: 3, maxTown: 3, trigger: { type: 'start' },
       text: 'the bargemaster waves from a different river. same hat.' },
+    { id: 'as-sky-all', minTown: 2, trigger: { type: 'figure', count: 5 },
+      text: 'the sky is full of pictures now. every town i ever left is looking up at the same ones.' },
   ],
 
   // Idle whispers: ambient stage lines, per act. Small pools, no filler.
