@@ -139,6 +139,12 @@ body {
 /* ---------- ending sky ---------- */
 .sky { position: absolute; inset: 0; z-index: 3; }
 .sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Positioned: the sky canvas is absolute, so a static sibling paints under
+   it and never receives clicks. Centered above the stats rows. */
+.departBtn {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 64px; z-index: 4;
+}
 .skyStats {
   position: absolute; left: 0; right: 0; bottom: 8px;
   display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center;
