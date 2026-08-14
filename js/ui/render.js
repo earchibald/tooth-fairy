@@ -51,6 +51,11 @@ export function buildUI(app, ctx) {
   const stirSub = el('div', 'sublabel');
   stirMeter.append(stirLabel, stirBar, stirSub);
 
+  const starChip = el('div', 'chip starChip');
+  starChip.hidden = true;
+  starChip.dataset.testid = 'star-chip';
+  attachTip(starChip, names.tips.stars);
+
   const spacer = el('div', 'spacer');
   const notesChip = el('button', 'chip');
   notesChip.hidden = true;
@@ -64,7 +69,7 @@ export function buildUI(app, ctx) {
   journalBtn.hidden = true;
   const settingsBtn = el('button', 'iconbtn', '⚙');
   settingsBtn.dataset.testid = 'settings-open';
-  topbar.append(beliefMeter, stirMeter, spacer, notesChip, journalBtn, settingsBtn);
+  topbar.append(beliefMeter, stirMeter, starChip, spacer, notesChip, journalBtn, settingsBtn);
   app.appendChild(topbar);
 
   // ---- tabs ----
@@ -213,6 +218,10 @@ export function buildUI(app, ctx) {
       if (v) notesChip.textContent = v;
     });
     set('notesOn', state.act >= 2 && state.notes > 0, (v) => { notesChip.disabled = !v; });
+    set('stars', state.starsEarned > 0 ? `★ ${state.stars}` : '', (v) => {
+      starChip.hidden = !v;
+      if (v) starChip.textContent = v;
+    });
     set('journal', state.beatsSeen.length > 3, (v) => { journalBtn.hidden = !v; });
     set('tiptoe', !state.tiptoeShown ? '' :
       state.tiptoeTicks > 0 ? `${names.verbs.tiptoe} ${(state.tiptoeTicks * cfg.TICK_MS / 1000).toFixed(0)}s` :

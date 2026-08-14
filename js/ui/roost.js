@@ -63,6 +63,40 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
     return `+${fmt(def.rate)}/s apiece` + (def.noise ? '' : ' · silent');
   }
 
+  // ---- the sky (star shop): permanent, star-priced, cross-town ----
+  const skyInfo = {
+    oldroads: 'new towns begin with baby fae and pincers',
+    mouseletter: `new towns begin with ${cfg.SKY.mouseletter.scouts} tooth scouts`,
+    packedlight: 'new towns begin with the dream ledger signed',
+    lullabythread: `hush +${cfg.SKY.lullabythread.hush}, every town`,
+    starcharts: 'the contract streak survives the move',
+    ferrytoken: `barge manifest cap +${cfg.SKY.ferrytoken.cap * 100}%, every town`,
+  };
+  for (const id of Object.keys(cfg.SKY)) {
+    const n = names.sky[id];
+    const c = makeCard({ key: 'sky:' + id, title: n.name, testid: 'card-sky-' + id });
+    c.node.classList.add('starCard');
+    c.flavor.textContent = n.flavor;
+    attachTip(c.node, names.tips.skyCard);
+    const b = buyButton(names.ui.buy, 'buy-sky-' + id);
+    b.btn.addEventListener('click', () => dispatch('buySky', { id }));
+    c.buys.append(b.btn);
+    c.info.textContent = skyInfo[id] || '';
+    cards.push({
+      key: 'sky:' + id,
+      isVisible: (s) => (s.postEnd || s.town >= 2) && !s.sky[id],
+      node: c.node,
+      primary: { btn: b.btn, keyChip: b.keyChip, run: () => dispatch('buySky', { id }) },
+      cache: {},
+      update(s, cache) {
+        const cost = cfg.SKY[id].cost;
+        const set = (k, v, fn) => { if (cache[k] !== v) { cache[k] = v; fn(v); } };
+        set('cost', '★ ' + cost, (v) => { b.cost.textContent = v; });
+        set('dis', s.stars < cost, (v) => { b.btn.disabled = v; });
+      },
+    });
+  }
+
   // ---- unit cards, each followed by its springboard card ----
   for (const unit of UNIT_IDS) {
     const def = cfg.UNITS[unit];
