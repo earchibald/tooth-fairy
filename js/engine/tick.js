@@ -181,15 +181,16 @@ export function tick(state, cfg, script, opts) {
 
   if (produced > 0) state.nightStats.teeth += produced;
 
-  // Productive ticks burn the night; idle ones do not.
-  if (state.nightShown && state.nightPhase === 'night' &&
-      (produced > 0 || state.tapsThisTick > 0)) {
-    state.nightTicksLeft -= dtTicks;
-    if (state.nightTicksLeft <= 0) toDawn(state, cfg, offline, contracts);
-  }
-
   // Threshold contracts complete mid-night, judged against this night's stats.
-  if (contracts && state.contractPicked && !state.contractDone) {
+  // This must run BEFORE the night-burn block below: burning the night can
+  // call toDawn, which judges the picked contract and resets the streak on
+  // failure. Evaluating the threshold first lets a contract met on the exact
+  // final tick complete on its own terms (full streak increment, a real
+  // rate-based burst) instead of being judged failed then re-completed at
+  // dawn with the rate zeroed out. Gated to the night phase so a contract can
+  // never complete during dawn, after judgment has already run.
+  if (contracts && state.contractPicked && !state.contractDone &&
+      state.nightPhase === 'night') {
     const c = contracts.pool.find((x) => x.id === state.contractPicked);
     const ns = state.nightStats;
     const met = c && (
@@ -197,6 +198,13 @@ export function tick(state, cfg, script, opts) {
       (c.type === 'notes' && ns.notes >= c.n) ||
       (c.type === 'tiptoes' && ns.tiptoes >= c.n));
     if (met) completeContract(state, cfg, c, offline);
+  }
+
+  // Productive ticks burn the night; idle ones do not.
+  if (state.nightShown && state.nightPhase === 'night' &&
+      (produced > 0 || state.tapsThisTick > 0)) {
+    state.nightTicksLeft -= dtTicks;
+    if (state.nightTicksLeft <= 0) toDawn(state, cfg, offline, contracts);
   }
 
   // Helpers fill the stage outline too: each whole automated tooth fills a

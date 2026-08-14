@@ -129,6 +129,12 @@ export function deserialize(raw) {
     if ((wrapped.state.v || 1) < 2) {
       s.v = 2;
       if (s.act >= 1 && !s.beatQueue.includes('mig-nights')) s.beatQueue.push('mig-nights');
+      // A migrated act>=2 save that already saw a2-hush would otherwise queue
+      // both mig-nights (above) and, on the next tick, a2-night (its
+      // afterBeat a2-hush trigger is already satisfied) — two back-to-back
+      // revealNight beats. Mark the ordinary reveal beat seen so it never
+      // fires; mig-nights alone carries the reveal for migrated saves.
+      if (!s.beatsSeen.includes('a2-night')) s.beatsSeen.push('a2-night');
     }
     return { state: s, savedAt: wrapped.savedAt || Date.now() };
   } catch {

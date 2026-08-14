@@ -143,6 +143,10 @@ export const ACTIONS = {
     if (fx.revealNight) {
       state.nightShown = true;
       state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
+      // Pre-reveal ticks (act 0/1) already fed nightStats; a fresh night must
+      // start empty or its ledger stamp and gather/notes/tiptoe contracts are
+      // pre-inflated by everything produced before night ever existed.
+      state.nightStats = { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 };
     }
     // Story order, not numeric order: the river (25) sits between act 2
     // and act 3, so a raw `>` would block the 25 → 3 transition.

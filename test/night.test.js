@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildConstants } from '../js/config/constants.js';
+import { buildContracts } from '../js/config/contracts.js';
 import { createState, serialize, deserialize } from '../js/engine/state.js';
 import { dispatch } from '../js/engine/actions.js';
 import { tick, runOffline } from '../js/engine/tick.js';
 
 const cfg = buildConstants();
+const contracts = buildContracts();
 const noStory = Object.freeze({ beats: [], asides: [], whispers: {}, notes: [] });
 
 function nightPlaying() {
@@ -204,4 +206,56 @@ test('v1 saves migrate: night fields defaulted, migration beat queued once', () 
   assert.equal(back.state.v, 2);
   assert.equal(back.state.night, 1);
   assert.ok(back.state.beatQueue.includes('mig-nights'));
+  // Without this, a migrated act>=2 save that already saw a2-hush would also
+  // queue a2-night on its first tick (its afterBeat trigger is already met),
+  // firing a second back-to-back revealNight beat that refills the night meter.
+  assert.ok(back.state.beatsSeen.includes('a2-night'),
+    'a2-night is pre-seen so it can never double-fire alongside mig-nights');
+});
+
+test('nightStats resets at reveal, so pre-reveal production does not inflate night 1', () => {
+  const s = createState(1);
+  s.tapShown = true;
+  s.act = 1;
+  s.upgrades.babyfae = true;
+  s.units.scout = 10; s.buys.scout = 10;
+  for (let i = 0; i < 500; i++) tick(s, cfg, noStory);
+  assert.ok(s.nightStats.teeth > 0, 'pre-reveal production accrued into nightStats');
+  dispatch(s, cfg, 'applyBeatEffects', { effects: { revealNight: true } });
+  assert.equal(s.nightStats.teeth, 0, 'reveal wipes pre-reveal accrual');
+});
+
+test('a gather contract crossed on the exact tick the night ends completes cleanly: full streak, a real burst', () => {
+  const c = contracts.pool.find((x) => x.id === 'c-gather-s');
+  const s = nightPlaying();
+  s.units.scout = 50; s.buys.scout = 50;
+  s.contractBoard = [c.id];
+  dispatch(s, cfg, 'pickContract', { id: c.id });
+  assert.equal(s.contractPicked, c.id);
+  s.nightTicksLeft = 1;               // this tick is the night's last
+  s.nightStats.teeth = c.n - 1;       // this tick's own production crosses n
+  const teethBefore = s.teeth;
+  tick(s, cfg, noStory, { contracts });
+  assert.equal(s.nightPhase, 'dawn', 'the night did end on this tick');
+  assert.equal(s.contractDone, true, 'threshold crossed by this tick completes it');
+  assert.equal(s.contractStreak, 1, 'no reset-then-1: a clean first completion');
+  const gain = s.teeth - teethBefore;
+  assert.ok(gain > 500, `burstS reward paid a real burst (gain ${gain})`);
+});
+
+test('a notes contract cannot complete during dawn, even though reading notes still works then', () => {
+  const c = contracts.pool.find((x) => x.id === 'c-notes');
+  const s = nightPlaying();
+  s.contractBoard = [c.id];
+  dispatch(s, cfg, 'pickContract', { id: c.id });
+  s.nightPhase = 'dawn';
+  s.duskGapS = 1000;      // stays in dawn across this tick
+  s.notesShown = true;
+  s.notes = 5;
+  assert.ok(dispatch(s, cfg, 'readNote'));
+  assert.ok(dispatch(s, cfg, 'readNote'));
+  assert.equal(s.nightStats.notes, 2, 'readNote still works at dawn');
+  tick(s, cfg, noStory, { contracts });
+  assert.equal(s.nightPhase, 'dawn', 'sanity: still dawn after the tick');
+  assert.equal(s.contractDone, false, 'a notes contract must not complete during dawn');
 });

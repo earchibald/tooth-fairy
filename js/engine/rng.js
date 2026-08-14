@@ -8,7 +8,8 @@ export function nextRand(state) {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-// Standalone mulberry32 for view-only effects (never touches engine state).
+// Standalone mulberry32 for deterministic derived draws (contract boards,
+// sky stars) seeded from engine state but never advancing state.rngState.
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {

@@ -204,8 +204,23 @@ setInterval(() => {
 // ---- autosave ----
 setInterval(save, 5000);
 window.addEventListener('pagehide', save);
+let hiddenAt = null;
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { save(); }
+  if (document.hidden) {
+    save();
+    hiddenAt = Date.now();
+  } else if (hiddenAt) {
+    const away = (Date.now() - hiddenAt) / 1000;
+    hiddenAt = null;
+    if (away >= 10) {
+      const gain = runOffline(box.state, cfg, script, away, contracts);
+      if (gain.teeth > 0) ui.overlays.showReturn(gain.teeth, gain.seconds);
+    }
+    // The main loop's accumulator clock must not double-count the gap the
+    // offline replay just consumed.
+    last = performance.now();
+    accum = 0;
+  }
 });
 
 // ---- keyboard ----
