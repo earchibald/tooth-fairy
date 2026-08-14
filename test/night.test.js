@@ -102,3 +102,18 @@ test('new units produce and reveal in act order', () => {
   tick(s, cfg, noStory);
   assert.ok(s.revealed['unit:starwrights']);
 });
+
+test('the barge pays a fraction of last night at dusk and counts a sailing', () => {
+  const s = nightPlaying();
+  s.units.scout = 10; s.buys.scout = 10;
+  s.units.barge = 2; s.buys.barge = 2;
+  for (let i = 0; i < cfg.NIGHT.LENGTH_TICKS + 2; i++) tick(s, cfg, noStory);
+  const manifest = s.bargeManifest;
+  assert.ok(manifest > 0);
+  const before = s.teeth;
+  const gapTicks = Math.ceil(cfg.NIGHT.MIN_GAP_S / (cfg.TICK_MS / 1000));
+  for (let i = 0; i < gapTicks + 2; i++) tick(s, cfg, noStory);
+  const frac = Math.min(cfg.UNITS.barge.manifestCap, cfg.UNITS.barge.manifestFrac * 2);
+  assert.ok(Math.abs((s.teeth - before) - manifest * frac) < 10);
+  assert.equal(s.sailings, 1);
+});

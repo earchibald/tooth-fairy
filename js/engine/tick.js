@@ -26,6 +26,18 @@ function toDawn(state, cfg, offline) {
 }
 
 function toDusk(state, cfg, offline) {
+  const barges = state.units.barge || 0;
+  if (barges > 0 && state.bargeManifest > 0) {
+    const def = cfg.UNITS.barge;
+    const frac = Math.min(def.manifestCap,
+      def.manifestFrac * barges * Math.pow(2, state.mults.barge || 0));
+    const lump = state.bargeManifest * frac;
+    state.teeth += lump;
+    state.lifetime += lump;
+    state.sailings++;
+    if (!offline) state.sfx.push({ type: 'sail', amount: lump });
+  }
+  state.bargeManifest = 0;
   state.night++;
   state.nightPhase = 'night';
   state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
