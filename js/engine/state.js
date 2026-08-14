@@ -2,7 +2,7 @@
 // nothing else does. `sfx` is a transient event queue the renderer drains —
 // feedback fires on effect, never on intent.
 
-import { starsAtLifetime } from './math.js';
+import { starsAtLifetime, figureDone } from './math.js';
 
 export const UNIT_IDS = ['scout', 'mouse', 'bunny', 'sprite', 'phantom', 'owl',
   'ferry', 'barge', 'pact', 'ministry', 'starwrights'];
@@ -24,7 +24,7 @@ const zeroUnits = () => Object.fromEntries(UNIT_IDS.map((u) => [u, 0]));
 
 export function createState(seed = 1) {
   return {
-    v: 3,
+    v: 4,
     seed: seed >>> 0 || 1,
     rngState: seed >>> 0 || 1,
     tick: 0,
@@ -92,6 +92,7 @@ export function createState(seed = 1) {
     sky: {},                    // star-shop flag id -> true, permanent across towns
     lifetimeAllTowns: 0,        // finished towns only; this town's lifetime excluded
     townLedger: [],             // { town, nights, lifetime, stars } per finished town
+    constellations: {},         // figure id -> stars placed; permanent across towns
 
     beatsSeen: [],
     beatQueue: [],
@@ -134,6 +135,7 @@ export function deserialize(raw) {
     s.contractBoard = Array.isArray(wrapped.state.contractBoard) ? wrapped.state.contractBoard : [];
     s.sky = { ...(wrapped.state.sky || {}) };
     s.townLedger = Array.isArray(wrapped.state.townLedger) ? wrapped.state.townLedger : [];
+    s.constellations = { ...(wrapped.state.constellations || {}) };
     s.sfx = [];               // never replay feedback from a save
     s.tapsThisTick = 0;
     s.offlineReplay = false;
@@ -149,7 +151,7 @@ export function deserialize(raw) {
         if (!s.beatsSeen.includes('a2-night')) s.beatsSeen.push('a2-night');
       }
     }
-    s.v = 3;
+    s.v = 4;
     return { state: s, savedAt: wrapped.savedAt || Date.now() };
   } catch {
     return null;
@@ -162,12 +164,14 @@ export function deserialize(raw) {
 // starts at act 1 with the tap, counter, and scout card already live.
 export function departTown(state, cfg) {
   if (!state.postEnd) return null;
-  const gained = starsAtLifetime(state.lifetime, cfg);
+  const gained = starsAtLifetime(state.lifetime, cfg) +
+    (figureDone(state, cfg, 'littlest') ? cfg.CONSTELLATIONS.littlest.departBonus : 0);
   const next = createState(((state.seed + state.town) >>> 0) || 1);
   next.town = state.town + 1;
   next.stars = state.stars + gained;
   next.starsEarned = state.starsEarned + gained;
   next.sky = { ...state.sky };
+  next.constellations = { ...state.constellations };
   next.lifetimeAllTowns = state.lifetimeAllTowns + state.lifetime;
   next.townLedger = state.townLedger.concat([{
     town: state.town,

@@ -39,3 +39,10 @@ export function fmt(n) {
   while (v >= 1000 && u < units.length - 1) { v /= 1000; u++; }
   return (v >= 100 ? Math.floor(v) : v.toFixed(v >= 10 ? 1 : 2)) + units[u];
 }
+
+// A figure is done when every slot is traced. Bonuses are all-or-nothing.
+export function figureDone(state, cfg, id) {
+  const def = cfg.CONSTELLATIONS[id];
+  if (!def) return false;
+  return ((state.constellations && state.constellations[id]) || 0) >= def.slots;
+}

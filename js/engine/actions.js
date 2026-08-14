@@ -103,6 +103,18 @@ export const ACTIONS = {
     bump(state);
   },
 
+  traceStar(state, cfg, arg) {
+    const def = arg && cfg.CONSTELLATIONS[arg.id];
+    if (!def) return;
+    const placed = state.constellations[arg.id] || 0;
+    if (placed >= def.slots) return;
+    if (state.stars < 1) return;
+    state.stars -= 1;
+    state.constellations[arg.id] = placed + 1;
+    state.sfx.push({ type: 'trace', id: arg.id, done: placed + 1 >= def.slots });
+    bump(state);
+  },
+
   buyLoom(state, cfg) {
     if (!state.revealed.loom) return;
     const cost = loomCost(state, cfg);

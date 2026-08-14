@@ -89,7 +89,7 @@ test('save v3: v2 fixture normalizes to town 1 / 0 stars and round-trips', () =>
     lifetime: 5000, units: { scout: 3 }, beatsSeen: ['a0-icon'], beatQueue: [] } };
   const parsed = deserialize(JSON.stringify(v2));
   assert.ok(parsed);
-  assert.equal(parsed.state.v, 3);
+  assert.equal(parsed.state.v, 4);
   assert.equal(parsed.state.town, 1);
   assert.equal(parsed.state.stars, 0);
   assert.deepEqual(parsed.state.sky, {});

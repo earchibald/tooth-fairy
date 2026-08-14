@@ -123,6 +123,16 @@ export const DEFAULTS = Object.freeze({
     starcharts:    Object.freeze({ cost: 12 }),
     ferrytoken:    Object.freeze({ cost: 18, cap: 0.05 }),
   }),
+
+  // Constellations: figures traced 1★ per slot. A complete figure's bonus is
+  // permanent, every town. Slot counts ARE the star costs.
+  CONSTELLATIONS: Object.freeze({
+    littlest:   Object.freeze({ slots: 4,  departBonus: 1 }),
+    fieldmouse: Object.freeze({ slots: 6,  tapMult: 2 }),
+    quietloom:  Object.freeze({ slots: 8,  noiseFactor: 0.9 }),
+    ferryman:   Object.freeze({ slots: 10, gapFactor: 0.5 }),
+    toothfairy: Object.freeze({ slots: 14, rateBonus: 0.01 }),
+  }),
 });
 
 // Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the
