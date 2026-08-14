@@ -9,7 +9,8 @@ export function createLog(panel, { names }) {
   let sig = '';
 
   function update(state, script) {
-    const next = state.beatsSeen.length + ':' + state.nightLedger.length;
+    const next = state.beatsSeen.length + ':' + state.night + ':' +
+      state.nightPhase + ':' + state.nightLedger.length;
     if (next === sig) return;
     sig = next;
     while (stamps.firstChild) stamps.removeChild(stamps.firstChild);
