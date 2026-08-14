@@ -5,7 +5,7 @@
 
 import { createState } from '../engine/state.js';
 import { dispatch } from '../engine/actions.js';
-import { tick } from '../engine/tick.js';
+import { tick, runOffline } from '../engine/tick.js';
 import { nextCost } from '../engine/math.js';
 
 const BUY_PRIORITY = ['ministry', 'pact', 'ferry', 'phantom', 'sprite', 'mouse', 'scout'];
@@ -26,6 +26,11 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       events.push({ tick: state.tick, beat: id });
       if (state.postEnd) break;
       continue; // the game pauses while a beat is open
+    }
+    if (state.nightShown && state.nightPhase === 'dawn') {
+      runOffline(state, cfg, script, cfg.NIGHT.MIN_GAP_S + 60);
+      events.push({ tick: state.tick, beat: '(slept)' });
+      continue;
     }
     for (let i = 0; i < tapsPerTick; i++) dispatch(state, cfg, 'tap');
     if (state.stir > 75) dispatch(state, cfg, 'tiptoe');

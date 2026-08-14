@@ -36,7 +36,10 @@ test('story ordering: the tutorial spine plays in exact script order', () => {
   const { events } = runBot(cfg, script, { maxTicks: 400000, seed: 4 });
   const spine = ['a0-icon', 'a0-few', 'a0-pile', 'a0-why', 'a0-fairy',
     'a0-toothfairy', 'a0-getteeth'];
-  assert.deepEqual(events.slice(0, spine.length).map((e) => e.beat), spine);
+  assert.deepEqual(
+    events.filter((e) => e.beat !== '(slept)').slice(0, spine.length).map((e) => e.beat),
+    spine,
+  );
   // No act-2 beat may fire before the act-2 transition beat is dismissed.
   const order = events.map((e) => e.beat);
   const stirAt = order.indexOf('a2-stir');

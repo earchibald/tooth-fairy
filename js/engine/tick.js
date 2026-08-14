@@ -57,7 +57,7 @@ function triggerMet(state, cfg, trig) {
 export function tick(state, cfg, script, opts) {
   const dtTicks = (opts && opts.dtTicks) || 1;
   const offline = !!(opts && opts.offline);
-  const rateFactor = (opts && opts.rateFactor) || 1;
+  const rateFactor = (opts && opts.rateFactor !== undefined) ? opts.rateFactor : 1;
   const dt = (cfg.TICK_MS / 1000) * dtTicks;
 
   state.tick += dtTicks;
@@ -240,25 +240,33 @@ export function tick(state, cfg, script, opts) {
   state.uiSeq++;
 }
 
-// Offline catch-up: the same tick loop, capped in steps and by the ledger cap.
+// Offline catch-up: the same tick loop. Time (nights, dusk gaps) always
+// passes for the full absence; EARNINGS require the ledger and its caps.
 export function runOffline(state, cfg, script, elapsedS) {
-  if (!state.upgrades.dreamledger || elapsedS < 10) return { teeth: 0, seconds: 0 };
+  if (elapsedS < 10) return { teeth: 0, seconds: 0 };
   const capHours = state.upgrades.lucidcontract ? cfg.UPGRADES.lucidcontract.offlineCapHours
     : state.upgrades.nightledger ? cfg.UPGRADES.nightledger.offlineCapHours
-    : cfg.UPGRADES.dreamledger.offlineCapHours;
-  const rate = state.upgrades.lucidcontract ? cfg.UPGRADES.lucidcontract.offlineRate
+    : state.upgrades.dreamledger ? cfg.UPGRADES.dreamledger.offlineCapHours : 0;
+  const rate = !state.upgrades.dreamledger ? 0
+    : state.upgrades.lucidcontract ? cfg.UPGRADES.lucidcontract.offlineRate
     : cfg.UPGRADES.dreamledger.offlineRate;
-  const effS = Math.min(elapsedS, capHours * 3600);
-  const totalTicks = Math.floor(effS / (cfg.TICK_MS / 1000));
+  const earnS = Math.min(elapsedS, capHours * 3600);
+  const totalTicks = Math.floor(elapsedS / (cfg.TICK_MS / 1000));
   if (totalTicks < 1) return { teeth: 0, seconds: 0 };
   const steps = Math.min(cfg.OFFLINE.MAX_STEPS, totalTicks);
   const dtScale = totalTicks / steps;
+  const earnTicks = Math.floor(earnS / (cfg.TICK_MS / 1000));
   const before = state.teeth;
   state.offlineReplay = true;
+  let done = 0;
   for (let i = 0; i < steps; i++) {
-    tick(state, cfg, script, { dtTicks: dtScale, offline: true, rateFactor: rate });
+    const stillEarning = done < earnTicks;
+    tick(state, cfg, script, {
+      dtTicks: dtScale, offline: true, rateFactor: stillEarning ? rate : 0,
+    });
+    done += dtScale;
   }
   state.offlineReplay = false;
   state.sfx = [];
-  return { teeth: state.teeth - before, seconds: effS };
+  return { teeth: state.teeth - before, seconds: earnS };
 }

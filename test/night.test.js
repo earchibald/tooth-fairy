@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildConstants } from '../js/config/constants.js';
 import { createState } from '../js/engine/state.js';
 import { dispatch } from '../js/engine/actions.js';
-import { tick } from '../js/engine/tick.js';
+import { tick, runOffline } from '../js/engine/tick.js';
 
 const cfg = buildConstants();
 const noStory = Object.freeze({ beats: [], asides: [], whispers: {}, notes: [] });
@@ -68,4 +68,25 @@ test('night stats track the night', () => {
   const t = s.nightStats.teeth;
   tick(s, cfg, noStory);
   assert.ok(s.nightStats.teeth >= t);
+});
+
+test('absence advances the dusk gap even without any ledger', () => {
+  const s = nightPlaying();
+  s.units.scout = 10; s.buys.scout = 10;
+  for (let i = 0; i < cfg.NIGHT.LENGTH_TICKS + 2; i++) tick(s, cfg, noStory);
+  assert.equal(s.nightPhase, 'dawn');
+  const before = s.teeth;
+  runOffline(s, cfg, noStory, cfg.NIGHT.MIN_GAP_S + 120);
+  assert.equal(s.nightPhase, 'night');
+  assert.equal(s.night, 2);
+  assert.equal(Math.floor(s.teeth), Math.floor(before), 'no ledger, no earnings');
+});
+
+test('with a ledger, a long absence plays nights and earns within caps', () => {
+  const s = nightPlaying();
+  s.units.scout = 10; s.buys.scout = 10;
+  s.upgrades.dreamledger = true;
+  const gain = runOffline(s, cfg, noStory, 3600);
+  assert.ok(gain.teeth > 0);
+  assert.ok(s.nightTicksLeft < cfg.NIGHT.LENGTH_TICKS, 'offline burned night time');
 });
