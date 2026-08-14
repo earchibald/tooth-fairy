@@ -9,6 +9,7 @@ import {
 import { UNIT_IDS, actAtLeast } from './state.js';
 import { completeOutlineSet } from './actions.js';
 import { mulberry32 } from './rng.js';
+import { figureDone } from './math.js';
 
 // Draws the night's contract board, deterministic from seed + night. Called
 // at reveal and each dusk.
@@ -50,7 +51,8 @@ function toDawn(state, cfg, offline, contracts) {
     else state.contractStreak = 0;   // an accepted, failed contract breaks the streak
   }
   state.nightPhase = 'dawn';
-  state.duskGapS = cfg.NIGHT.MIN_GAP_S;
+  state.duskGapS = cfg.NIGHT.MIN_GAP_S *
+    (figureDone(state, cfg, 'ferryman') ? cfg.CONSTELLATIONS.ferryman.gapFactor : 1);
   state.bargeManifest = state.nightStats.teeth;
   state.nightLedger.push({
     night: state.night,
@@ -107,6 +109,18 @@ function triggerMet(state, cfg, trig) {
     // The player summons the wall: the ending needs the ministry (monotone,
     // never spendable-down) plus a lifetime cushion, so it is caused, not waited for.
     case 'ending': return state.buys.ministry >= 1 && state.lifetime >= cfg.ENDING.LIFETIME;
+    case 'trace': {
+      let placed = 0;
+      for (const k of Object.keys(state.constellations || {})) placed += state.constellations[k];
+      return placed >= trig.count;
+    }
+    case 'figure': {
+      let done = 0;
+      for (const id of Object.keys(cfg.CONSTELLATIONS)) {
+        if (figureDone(state, cfg, id)) done++;
+      }
+      return done >= trig.count;
+    }
     default: return false;
   }
 }

@@ -1,7 +1,7 @@
 // Shared derivations and reveal predicates. ONE function per unlock, read by
 // the hint, the card renderer, and the buy guard — they must never diverge.
 
-import { nextCost } from './math.js';
+import { nextCost, figureDone } from './math.js';
 import { UNIT_IDS, actAtLeast } from './state.js';
 
 export function multFactor(state, unit, cfg) {
@@ -64,8 +64,11 @@ export function contractMult(state, cfg) {
 }
 
 // Passive prestige bonus: every star ever earned, spent or not, every town.
+// A finished TOOTH FAIRY figure raises what each star pays — retroactively.
 export function skyMult(state, cfg) {
-  return 1 + (state.starsEarned || 0) * cfg.STARS.RATE_PER_STAR;
+  const per = cfg.STARS.RATE_PER_STAR +
+    (figureDone(state, cfg, 'toothfairy') ? cfg.CONSTELLATIONS.toothfairy.rateBonus : 0);
+  return 1 + (state.starsEarned || 0) * per;
 }
 
 export function tapPower(state, cfg) {
@@ -74,6 +77,7 @@ export function tapPower(state, cfg) {
     if (state.upgrades[id]) mult *= 2;
   }
   let power = cfg.TAP.BASE * mult;
+  if (figureDone(state, cfg, 'fieldmouse')) power *= cfg.CONSTELLATIONS.fieldmouse.tapMult;
   if (state.upgrades.starlight) {
     power += cfg.UPGRADES.starlight.tapRateFrac * effectiveRatePerSec(state, cfg);
   }
@@ -90,6 +94,7 @@ export function noiseLevel(state, cfg) {
   }
   noise *= Math.pow(cfg.UNITS.pact.stirFactor, state.units.pact);
   noise *= tiptoeFactor(state, cfg);
+  if (figureDone(state, cfg, 'quietloom')) noise *= cfg.CONSTELLATIONS.quietloom.noiseFactor;
   return noise;
 }
 
