@@ -213,6 +213,36 @@ test('v1 saves migrate: night fields defaulted, migration beat queued once', () 
     'a2-night is pre-seen so it can never double-fire alongside mig-nights');
 });
 
+test('act-0 v1 save migrates without queuing mig-nights or marking a2-night seen', () => {
+  const s = createState(1);
+  s.act = 0;
+  const raw = JSON.parse(serialize(s));
+  raw.state.v = 1;
+  delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
+  const back = deserialize(JSON.stringify(raw));
+  assert.equal(back.state.v, 2, 'v upgraded to 2');
+  assert.equal(back.state.act, 0, 'act remains 0');
+  assert.ok(!back.state.beatQueue.includes('mig-nights'),
+    'act-0 save does not queue mig-nights migration beat');
+  assert.ok(!back.state.beatsSeen.includes('a2-night'),
+    'act-0 save does not suppress a2-night so night can reveal naturally later');
+});
+
+test('act>=1 v1 save queues mig-nights and marks a2-night seen to avoid double reveal', () => {
+  const s = nightPlaying();
+  s.act = 1;
+  const raw = JSON.parse(serialize(s));
+  raw.state.v = 1;
+  delete raw.state.night; delete raw.state.nightPhase; delete raw.state.contractBoard;
+  const back = deserialize(JSON.stringify(raw));
+  assert.equal(back.state.v, 2, 'v upgraded to 2');
+  assert.equal(back.state.act, 1, 'act is 1');
+  assert.ok(back.state.beatQueue.includes('mig-nights'),
+    'act>=1 save queues mig-nights migration beat');
+  assert.ok(back.state.beatsSeen.includes('a2-night'),
+    'act>=1 save marks a2-night seen to prevent double reveal with mig-nights');
+});
+
 test('nightStats resets at reveal, so pre-reveal production does not inflate night 1', () => {
   const s = createState(1);
   s.tapShown = true;
