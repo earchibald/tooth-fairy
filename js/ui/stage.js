@@ -151,8 +151,8 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     stat('notes read', state.notesRead);
     stat('wakes', state.wakes);
     stat('journal visits', state.journalOpens);
-    stat('town', state.town);
-    stat('★ earned', state.starsEarned);
+    stat(names.ui.townLabel, state.town);
+    stat(names.ui.starsLabel, state.starsEarned);
   }
 
   function updateDepart(state) {

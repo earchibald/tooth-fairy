@@ -27,6 +27,14 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'hell yeah', trigger: { type: 'afterBeat', id: 'a0-toothfairy' },
       effects: { act: 1 } },
 
+    // ---- TOWN 2+ (the arrival replaces the amnesia opening) ----
+    { id: 't2-arrive', act: 1, register: 'memory', minTown: 2,
+      text: 'another town. smaller. the moon followed me here. i remembered my name the whole way.',
+      response: 'back to work', trigger: { type: 'start' } },
+    { id: 't2-ledger', act: 1, register: 'ledger', minTown: 2,
+      text: 'transfer approved. balance carried: see the sky. the rounds resume at dusk. welcome, again.',
+      response: 'again.', trigger: { type: 'afterBeat', id: 't2-arrive' } },
+
     // ---- ACT 1 · THE ROUNDS ----
     { id: 'a1-babyfae', act: 1, register: 'memory',
       text: "there's a small one following me now. she has my eyes. one of them, anyway.",
@@ -171,14 +179,6 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'there is another town. there is always another town. the stars come with me — they always did.',
       response: 'pack up', trigger: { type: 'afterBeat', id: 'end-sky' } },
 
-    // ---- TOWN 2+ (the arrival replaces the amnesia opening) ----
-    { id: 't2-arrive', act: 1, register: 'memory', minTown: 2,
-      text: 'another town. smaller. the moon followed me here. i remembered my name the whole way.',
-      response: 'back to work', trigger: { type: 'start' } },
-    { id: 't2-ledger', act: 1, register: 'ledger', minTown: 2,
-      text: 'transfer approved. balance carried: see the sky. the rounds resume at dusk. welcome, again.',
-      response: 'again.', trigger: { type: 'afterBeat', id: 't2-arrive' } },
-
     // ---- MIGRATION ----
     { id: 'mig-nights', act: 1, register: 'memory',
       text: 'the nights have gotten longer. i can feel the dawn now, and the rest between. the work is the same. there is just more night to do it in.',
@@ -226,7 +226,7 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       text: 'you keep every note. somewhere, a drawer strains.' },
     { id: 'as-wake5', trigger: { type: 'wake', count: 5 },
       text: 'the pajama sentries have a rota now. you respect it.' },
-    { id: 'as-town3', minTown: 3, trigger: { type: 'start' },
+    { id: 'as-town3', minTown: 3, maxTown: 3, trigger: { type: 'start' },
       text: 'the bargemaster waves from a different river. same hat.' },
   ],
 

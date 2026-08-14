@@ -19,6 +19,7 @@ test('the bot buys sky cards and departs into a faster second town', () => {
   // and TOWN_LEDGER_CAP is 10 — more towns evict townLedger[0], breaking the
   // town-1 comparison below.
   let afterTown1 = null;
+  let firstTown2BeatQueued = null;
   const { state } = runBot(cfg, script, {
     maxTicks: 200000,
     seed: 1,
@@ -27,6 +28,9 @@ test('the bot buys sky cards and departs into a faster second town', () => {
     onTick: (s) => {
       if (!afterTown1 && s.town === 2) {
         afterTown1 = { town: s.town, stars: s.stars, starsEarned: s.starsEarned };
+      }
+      if (s.town === 2 && firstTown2BeatQueued === null && s.beatQueue.length) {
+        firstTown2BeatQueued = s.beatQueue[0];
       }
     },
   });
@@ -48,4 +52,11 @@ test('the bot buys sky cards and departs into a faster second town', () => {
   // the single-town playthrough tests exempt.
   assert.ok(state.beatsSeen.includes('t2-arrive'), 't2-arrive fired');
   assert.ok(state.beatsSeen.includes('t2-ledger'), 't2-ledger fired');
+
+  // Arrival beat precedence: replayed act-1 story beats (babyfae/scout
+  // grants from sky-card starts) must not queue ahead of the town-2
+  // arrival line, or the player's first town-2 beat is the amnesia
+  // opening the arrival replaces.
+  assert.equal(firstTown2BeatQueued, 't2-arrive',
+    'the first beat queued in town 2 should be t2-arrive, not a replayed act-1 beat');
 });

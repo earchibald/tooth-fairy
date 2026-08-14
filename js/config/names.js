@@ -75,7 +75,7 @@ export const NAME_DEFAULTS = Object.freeze({
     morningTitle: 'the morning after night {n}',
     duskIn: 'dusk in about {m} min',
     dawnSoon: 'dawn soon',
-    depart: 'another town', departConfirm: 'leave for good?', townLabel: 'town', starsLabel: 'stars',
+    depart: 'another town', departConfirm: 'leave for good?', townLabel: 'town', starsLabel: '★ earned',
   }),
   tips: Object.freeze({
     belief: 'belief scales every tooth: ×0.5 at 0, ×1.5 at 100. quiet productive nights and notes raise it. wakes cut it.',

@@ -15,7 +15,7 @@ export function createLog(panel, { names }) {
     if (next === sig) return;
     sig = next;
     while (stamps.firstChild) stamps.removeChild(stamps.firstChild);
-    for (const t of state.townLedger) {
+    for (const t of state.townLedger.slice().reverse()) {
       const row = document.createElement('div');
       row.className = 'stamp townStamp';
       row.textContent =

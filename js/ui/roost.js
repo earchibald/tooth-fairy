@@ -232,12 +232,24 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
 
   const everVisible = new Set();
   let booted = false;
+  let lastTown = null;
 
   return {
     update(state) {
       // First frame after boot: mark already-visible cards seen, no ceremony.
       if (!booted) {
         booted = true;
+        lastTown = state.town;
+        for (const card of cards) if (card.isVisible(state)) everVisible.add(card.key);
+        everVisible.add('__boot');
+      }
+      // New town: the state swapped out from under us. Re-seed the
+      // already-visible cards silently so the roost doesn't ceremony-spam
+      // on the first town-2+ frame, but forget cards no longer visible so
+      // their re-arrival plays the ceremony again.
+      if (state.town !== lastTown) {
+        lastTown = state.town;
+        everVisible.clear();
         for (const card of cards) if (card.isVisible(state)) everVisible.add(card.key);
         everVisible.add('__boot');
       }
