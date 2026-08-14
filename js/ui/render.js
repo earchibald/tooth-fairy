@@ -88,6 +88,9 @@ export function buildUI(app, ctx) {
   const stage = createStage(stageEl, {
     vfx,
     script: ctx.script,
+    names,
+    cfg,
+    onDepart: ctx.onDepart,
     onRespond: (beat) => {
       dispatch('applyBeatEffects', { effects: beat.effects });
       dispatch('dismissBeat', { id: beat.id });

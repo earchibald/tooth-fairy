@@ -10,10 +10,18 @@ export function createLog(panel, { names }) {
 
   function update(state, script) {
     const next = state.beatsSeen.length + ':' + state.night + ':' +
-      state.nightPhase + ':' + state.nightLedger.length;
+      state.nightPhase + ':' + state.nightLedger.length + ':' +
+      state.townLedger.length + ':' + state.town;
     if (next === sig) return;
     sig = next;
     while (stamps.firstChild) stamps.removeChild(stamps.firstChild);
+    for (const t of state.townLedger) {
+      const row = document.createElement('div');
+      row.className = 'stamp townStamp';
+      row.textContent =
+        `town ${t.town} — ${t.nights} nights · ${fmt(t.lifetime)} gathered · ${t.stars}★`;
+      stamps.appendChild(row);
+    }
     for (const st of state.nightLedger.slice().reverse()) {
       const row = document.createElement('div');
       row.className = 'stamp';

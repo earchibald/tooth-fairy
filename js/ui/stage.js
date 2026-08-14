@@ -2,9 +2,10 @@
 
 import { toothSVG } from './tooth.js';
 import { mulberry32 } from '../engine/rng.js';
-import { fmt } from '../engine/math.js';
+import { fmt, starsAtLifetime } from '../engine/math.js';
+import { attachTip } from './tooltip.js';
 
-export function createStage(el, { vfx, script, onRespond, onOrphan }) {
+export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, onDepart }) {
   el.classList.add('stage');
 
   const asideLayer = document.createElement('div');
@@ -40,6 +41,18 @@ export function createStage(el, { vfx, script, onRespond, onOrphan }) {
   const skyStats = document.createElement('div');
   skyStats.className = 'skyStats';
   sky.append(skyCanvas, skyStats);
+  const departBtn = document.createElement('button');
+  departBtn.className = 'beatBtn departBtn';
+  departBtn.dataset.testid = 'depart';
+  departBtn.hidden = true;
+  attachTip(departBtn, names.tips.depart);
+  let armedUntil = 0;
+  departBtn.addEventListener('click', () => {
+    const now = performance.now();
+    if (now < armedUntil) { armedUntil = 0; onDepart(); }
+    else armedUntil = now + 5000;
+  });
+  sky.appendChild(departBtn);
   el.appendChild(sky);
 
   let shownBeat = null;
@@ -138,6 +151,17 @@ export function createStage(el, { vfx, script, onRespond, onOrphan }) {
     stat('notes read', state.notesRead);
     stat('wakes', state.wakes);
     stat('journal visits', state.journalOpens);
+    stat('town', state.town);
+    stat('★ earned', state.starsEarned);
+  }
+
+  function updateDepart(state) {
+    departBtn.hidden = !state.postEnd;
+    if (!state.postEnd) return;
+    const armed = performance.now() < armedUntil;
+    const preview = starsAtLifetime(state.lifetime, cfg);
+    const label = armed ? names.ui.departConfirm : `${names.ui.depart} (+${preview}★)`;
+    if (departBtn.textContent !== label) departBtn.textContent = label;
   }
 
   return {
@@ -163,6 +187,7 @@ export function createStage(el, { vfx, script, onRespond, onOrphan }) {
       }
       updateOutline(state);
       updateSky(state);
+      updateDepart(state);
     },
 
     aside(text, cls) {

@@ -5,7 +5,7 @@ import { buildNames } from './config/names.js';
 import { buildVfx } from './config/vfx.js';
 import { buildScript } from './config/script.js';
 import { buildContracts } from './config/contracts.js';
-import { createState, serialize, deserialize } from './engine/state.js';
+import { createState, serialize, deserialize, departTown } from './engine/state.js';
 import { dispatch as engineDispatch } from './engine/actions.js';
 import { tick, runOffline } from './engine/tick.js';
 import { fmt } from './engine/math.js';
@@ -60,13 +60,22 @@ function dispatch(action, arg) {
   return engineDispatch(box.state, cfg, action, arg);
 }
 
+// Swaps in a whole new state (save import, town departure): rebind box.state,
+// drop unknown queued beats, persist. Anything that replaces the run wholesale
+// must go through this, not assign box.state directly.
+function loadState(s) {
+  sanitizeQueue(s);
+  box.state = s;
+  save();
+}
+
 // ---- UI ----
 const app = document.getElementById('app');
 const ui = buildUI(app, {
   cfg, names, vfx, script, contracts,
   dispatch,
   getState: () => box.state,
-  loadState: (s) => { sanitizeQueue(s); box.state = s; save(); },
+  loadState,
   resetGame: () => {
     resetting = true;
     localStorage.removeItem('tf-save');
@@ -74,6 +83,12 @@ const ui = buildUI(app, {
   },
   onBeatDismissed: () => { save(); },
   onCeremony: () => { play.buy(); },
+  onDepart: () => {
+    const next = departTown(box.state, cfg);
+    if (!next) return;
+    loadState(next);
+    ui.tabs.show('tonight');
+  },
 });
 
 // Offline catch-up on boot.
