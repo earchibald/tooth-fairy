@@ -2,7 +2,7 @@
 
 import { toothSVG } from './tooth.js';
 import { mulberry32 } from '../engine/rng.js';
-import { fmt, starsAtLifetime } from '../engine/math.js';
+import { fmt, starsAtLifetime, figureDone } from '../engine/math.js';
 import { attachTip } from './tooltip.js';
 
 export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, onDepart }) {
@@ -114,7 +114,8 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     sky.hidden = false;
     outlineRow.hidden = true;
     const stars = Math.min(vfx.sky.starsMax, Math.floor(Math.sqrt(state.lifetime) / 30));
-    const sig = stars + ':' + state.taps;
+    const doneIds = Object.keys(cfg.CONSTELLATIONS).filter((id) => figureDone(state, cfg, id));
+    const sig = stars + ':' + state.taps + ':' + doneIds.length;
     if (sig === skySig) return;
     skySig = sig;
     const dpr = window.devicePixelRatio || 1;
@@ -135,6 +136,30 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
       c.beginPath();
       c.arc(x, y, r, 0, 7);
       c.fill();
+    }
+    // Completed figures ride over the random field: what the sky remembers.
+    for (let i = 0; i < doneIds.length; i++) {
+      const pat = vfx.constellations[doneIds[i]];
+      const fw = w * 0.16;
+      const fh = (h - 40) * 0.35;
+      const ox = w * (0.06 + i * 0.18);
+      const oy = (h - 40) * (i % 2 ? 0.5 : 0.1);
+      c.globalAlpha = 0.5;
+      c.strokeStyle = '#dfe8ff';
+      c.lineWidth = 0.6;
+      for (const [a, b] of pat.edges) {
+        c.beginPath();
+        c.moveTo(ox + (pat.points[a][0] / 100) * fw, oy + (pat.points[a][1] / 100) * fh);
+        c.lineTo(ox + (pat.points[b][0] / 100) * fw, oy + (pat.points[b][1] / 100) * fh);
+        c.stroke();
+      }
+      c.globalAlpha = 0.95;
+      c.fillStyle = '#f0f5ff';
+      for (const [px, py] of pat.points) {
+        c.beginPath();
+        c.arc(ox + (px / 100) * fw, oy + (py / 100) * fh, 1.3, 0, 7);
+        c.fill();
+      }
     }
     while (skyStats.firstChild) skyStats.removeChild(skyStats.firstChild);
     const stat = (label, value) => {
