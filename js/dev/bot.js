@@ -27,7 +27,12 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       dispatch(state, cfg, 'applyBeatEffects', { effects: beat && beat.effects });
       dispatch(state, cfg, 'dismissBeat', { id });
       events.push({ tick: state.tick, beat: id });
-      if (state.postEnd) break;
+      if (state.postEnd) {
+        // Give the engine one more tick so an afterBeat-chained beat
+        // (e.g. end-town after end-sky) gets queued before we stop.
+        tick(state, cfg, script, { contracts });
+        if (!state.beatQueue.length) break;
+      }
       continue; // the game pauses while a beat is open
     }
     if (state.nightShown && state.nightPhase === 'dawn') {
