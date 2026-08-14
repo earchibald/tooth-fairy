@@ -11,6 +11,7 @@ import { createOverlays } from './overlays.js';
 import { createConveyor } from './conveyor.js';
 import { createTabs } from './tabs.js';
 import { createLog } from './log.js';
+import { createBoard } from './board.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -85,6 +86,17 @@ export function buildUI(app, ctx) {
     onOrphan: (id) => { dispatch('dismissBeat', { id }); },
   });
 
+  // ---- contract board ----
+  const board = createBoard(tabs.panels.tonight, { names, contracts: ctx.contracts, dispatch });
+
+  // ---- morning card ----
+  const morning = el('div', 'morningCard');
+  morning.hidden = true;
+  const morningTitle = el('div', 'cardName');
+  const morningBody = el('div', 'cardInfo');
+  morning.append(morningTitle, morningBody);
+  tabs.panels.tonight.appendChild(morning);
+
   // ---- the log ----
   const log = createLog(tabs.panels.log, { names });
 
@@ -102,6 +114,9 @@ export function buildUI(app, ctx) {
   count.dataset.testid = 'tooth-count';
   const rate = el('div', 'rate', '');
   counterWrap.append(count, rate);
+  const dawn = el('div', 'dawnMeter');
+  dawn.hidden = true;
+  counterWrap.appendChild(dawn);
   const verbs = el('div', 'trayVerbs');
   const tiptoeBtn = el('button', 'chip');
   tiptoeBtn.hidden = true;
@@ -201,7 +216,28 @@ export function buildUI(app, ctx) {
         tiptoeBtn.disabled = state.tiptoeTicks > 0;
       }
     });
+    set('dawn', !state.nightShown ? '' :
+      state.nightPhase === 'dawn'
+        ? names.ui.duskIn.replace('{m}', String(Math.max(1, Math.ceil(state.duskGapS / 60))))
+        : state.nightTicksLeft < cfg.NIGHT.LENGTH_TICKS * 0.1
+          ? names.ui.dawnSoon
+          : `night ${state.night}`, (v) => {
+      dawn.hidden = !v;
+      if (v) dawn.textContent = v;
+    });
+    set('morning', state.nightShown && state.nightPhase === 'dawn'
+      ? String(state.night) : '', (v) => {
+      morning.hidden = !v;
+      if (v) {
+        const st = state.nightLedger[state.nightLedger.length - 1];
+        morningTitle.textContent = names.ui.morningTitle.replace('{n}', v);
+        morningBody.textContent = st
+          ? `${fmt(st.teeth)} teeth · wakes ${st.wakes} · contracts ${st.contractsDone}${st.sailed ? ' · sailed' : ''}`
+          : '';
+      }
+    });
     stage.update(state, ctx.script);
+    board.update(state);
     roost.update(state);
     log.update(state, ctx.script);
   }

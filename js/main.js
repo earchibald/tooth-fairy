@@ -150,9 +150,25 @@ function drainSfx() {
         if (aside) ui.stage.aside(aside.text);
         break;
       }
-      case 'reveal': ui.tabs.setBadge('roost', true); break; // dot the roost tab; the roost itself handles arrival ceremony
+      case 'reveal': {
+        ui.tabs.setBadge('roost', true);
+        const [kind, id] = ev.key.split(':');
+        const label = kind === 'unit' ? names.units[id].name
+          : kind === 'up' ? names.upgrades[id].name : names.loom.name;
+        ui.stage.aside(names.ui.roostNew + label.toLowerCase(), 'roostNew');
+        break;
+      }
       case 'ferry': break;     // the conveyor lump is the feedback
       case 'expire': break;
+      case 'dawn': play.beat(); break;
+      case 'dusk': play.fill(); break;
+      case 'sail': ui.conveyor.credit(ev.amount, now); break;
+      case 'pick': play.buy(); break;
+      case 'contract': {
+        play.fill();
+        if (ev.fragment) ui.stage.aside(ev.fragment, 'note');
+        break;
+      }
       default: break;
     }
   }

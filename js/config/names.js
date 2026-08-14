@@ -65,6 +65,11 @@ export const NAME_DEFAULTS = Object.freeze({
     tiptoeHint: 'half speed, half noise, fifteen seconds. always allowed. never pretty.',
     stirHint: 'the crew makes noise. hush is how much the night absorbs. noise above hush builds STIR; at 100 someone wakes — belief drops and the loudest crew lies low. tiptoe halves noise. the loom raises hush.',
     beliefHint: 'belief scales every tooth: ×0.5 at 0, ×1.5 at 100. quiet productive nights and reading notes raise it. wakes cut it.',
+    boardTitle: 'tonight’s jobs',
+    roostNew: 'new at the roost — ',
+    morningTitle: 'the morning after night {n}',
+    duskIn: 'dusk in about {m} min',
+    dawnSoon: 'dawn soon',
   }),
 });
 
