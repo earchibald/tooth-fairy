@@ -39,6 +39,7 @@ export function baseRatePerSec(state, cfg) {
 
 // The number the rate readout shows: everything applied.
 export function effectiveRatePerSec(state, cfg) {
+  if (state.nightShown && state.nightPhase === 'dawn') return 0;
   const ferryStunned = state.stunUnit === 'ferry' && state.stunTicks > 0;
   const lumps = state.units.ferry > 0 && cfg.UNITS.ferry.lumpEveryTicks > 0 && !ferryStunned
     ? (cfg.UNITS.ferry.lumpAmount * state.units.ferry * multFactor(state, 'ferry')) /

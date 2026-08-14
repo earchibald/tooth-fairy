@@ -20,12 +20,14 @@ export function completeOutlineSet(state, cfg) {
 export const ACTIONS = {
   tap(state, cfg) {
     if (!state.tapShown || state.beatQueue.length) return;
+    if (state.nightShown && state.nightPhase === 'dawn') return;
     if (state.tapsThisTick >= cfg.TAP.MAX_PER_TICK) return;
     state.tapsThisTick++;
     state.taps++;
     const gain = tapPower(state, cfg) * beliefMult(state);
     state.teeth += gain;
     state.lifetime += gain;
+    state.nightStats.teeth += gain;
     state.outline.filled++;
     state.sfx.push({ type: 'tap', gain });
     if (state.outline.filled >= state.outline.size) completeOutlineSet(state, cfg);
@@ -99,6 +101,7 @@ export const ACTIONS = {
     if (!state.tiptoeShown || state.tiptoeTicks > 0) return;
     state.tiptoeTicks = cfg.TIPTOE.TICKS;
     state.tiptoes++;
+    state.nightStats.tiptoes++;
     state.sfx.push({ type: 'tiptoe' });
     bump(state);
   },
@@ -107,6 +110,7 @@ export const ACTIONS = {
     if (!state.notesShown || state.notes < 1 || state.act < 2) return;
     state.notes--;
     state.notesRead++;
+    state.nightStats.notes++;
     state.noteIdx++;
     state.belief = Math.min(100, state.belief + cfg.BELIEF.NOTE_VALUE);
     state.sfx.push({ type: 'note' });
@@ -130,6 +134,10 @@ export const ACTIONS = {
     if (!fx) return;
     if (fx.showTap) state.tapShown = true;
     if (fx.revealTiptoe) state.tiptoeShown = true;
+    if (fx.revealNight) {
+      state.nightShown = true;
+      state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
+    }
     if (fx.act && fx.act > state.act) state.act = fx.act;
     if (fx.ending) state.ended = true;
     if (fx.postEnd) state.postEnd = true;

@@ -54,6 +54,16 @@ export function createState(seed = 1) {
     outline: { size: 1, filled: 0, setsDone: 0 },
     outlineAccum: 0,            // fractional helper teeth waiting to fill an outline slot
 
+    night: 1,
+    nightPhase: 'night',
+    nightShown: false,
+    nightTicksLeft: 0,          // set from cfg at reveal and at each dusk
+    duskGapS: 0,
+    nightStats: { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 },
+    nightLedger: [],
+    sailings: 0,                // lifetime completed sailings (river act)
+    bargeManifest: 0,           // teeth logged for the barge this night
+
     beatsSeen: [],
     beatQueue: [],
     asidesSeen: [],
@@ -87,6 +97,8 @@ export function deserialize(raw) {
     s.revealed = { ...(wrapped.state.revealed || {}) };
     s.outline = { ...fresh.outline, ...(wrapped.state.outline || {}) };
     s.spriteExpiries = Array.isArray(wrapped.state.spriteExpiries) ? wrapped.state.spriteExpiries : [];
+    s.nightStats = { ...fresh.nightStats, ...(wrapped.state.nightStats || {}) };
+    s.nightLedger = Array.isArray(wrapped.state.nightLedger) ? wrapped.state.nightLedger : [];
     s.beatsSeen = Array.isArray(wrapped.state.beatsSeen) ? wrapped.state.beatsSeen : [];
     s.beatQueue = Array.isArray(wrapped.state.beatQueue) ? wrapped.state.beatQueue : [];
     s.asidesSeen = Array.isArray(wrapped.state.asidesSeen) ? wrapped.state.asidesSeen : [];

@@ -9,6 +9,30 @@ import {
 import { UNIT_IDS } from './state.js';
 import { completeOutlineSet } from './actions.js';
 
+// Dawn: stamp the night, rest until dusk. Dusk: begin the next night.
+function toDawn(state, cfg, offline) {
+  state.nightPhase = 'dawn';
+  state.duskGapS = cfg.NIGHT.MIN_GAP_S;
+  state.bargeManifest = state.nightStats.teeth;
+  state.nightLedger.push({
+    night: state.night,
+    teeth: Math.floor(state.nightStats.teeth),
+    wakes: state.nightStats.wakes,
+    contractsDone: 0,          // task 6 fills this in
+    sailed: (state.units.barge || 0) > 0,
+  });
+  if (state.nightLedger.length > cfg.NIGHT.LEDGER_CAP) state.nightLedger.shift();
+  if (!offline) state.sfx.push({ type: 'dawn' });
+}
+
+function toDusk(state, cfg, offline) {
+  state.night++;
+  state.nightPhase = 'night';
+  state.nightTicksLeft = cfg.NIGHT.LENGTH_TICKS;
+  state.nightStats = { teeth: 0, wakes: 0, notes: 0, tiptoes: 0 };
+  if (!offline) state.sfx.push({ type: 'dusk' });
+}
+
 function triggerMet(state, cfg, trig) {
   switch (trig.type) {
     case 'start': return true;
@@ -37,6 +61,12 @@ export function tick(state, cfg, script, opts) {
   const dt = (cfg.TICK_MS / 1000) * dtTicks;
 
   state.tick += dtTicks;
+
+  const atDawn = state.nightShown && state.nightPhase === 'dawn';
+  if (atDawn) {
+    state.duskGapS -= dt;
+    if (state.duskGapS <= 0) toDusk(state, cfg, offline);
+  }
 
   // Sprites expire; afterglow pays half their lifetime yield as a burst.
   let burst = 0;
@@ -75,14 +105,25 @@ export function tick(state, cfg, script, opts) {
     state.ferryPhase = 0;
   }
 
+  if (atDawn) { lump = 0; burst = 0; ferrySpike = 0; }
+
   // Production.
-  const continuous = baseRatePerSec(state, cfg) * dt;
+  const continuous = atDawn ? 0 : baseRatePerSec(state, cfg) * dt;
   const produced = (continuous + lump + burst) *
     beliefMult(state) * pactNet(state, cfg) * tiptoeFactor(state, cfg) * rateFactor;
   if (produced > 0) {
     state.teeth += produced;
     state.lifetime += produced;
     if (!offline) state.sfx.push({ type: 'income', amount: produced });
+  }
+
+  if (produced > 0) state.nightStats.teeth += produced;
+
+  // Productive ticks burn the night; idle ones do not.
+  if (state.nightShown && state.nightPhase === 'night' &&
+      (produced > 0 || state.tapsThisTick > 0)) {
+    state.nightTicksLeft -= dtTicks;
+    if (state.nightTicksLeft <= 0) toDawn(state, cfg, offline);
   }
 
   // Helpers fill the stage outline too: each whole automated tooth fills a
@@ -151,6 +192,7 @@ export function tick(state, cfg, script, opts) {
       if (n > worstNoise) { worstNoise = n; worst = u; }
     }
     state.wakes++;
+    state.nightStats.wakes++;
     state.belief = Math.max(0, state.belief - cfg.STIR.WAKE_BELIEF_COST);
     state.stir = cfg.STIR.WAKE_RESET;
     state.settleTicks = cfg.STIR.SETTLE_TICKS;

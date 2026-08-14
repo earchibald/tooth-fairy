@@ -79,6 +79,12 @@ export const DEFAULTS = Object.freeze({
     MAX_SIZE: 64,          // stage outline sets double up to this
     HELPER_FILL_CAP: 6,    // max outline slots automated income fills per tick
   }),
+
+  NIGHT: Object.freeze({
+    LENGTH_TICKS: 10500,  // ~35 min of productive play at 200ms ticks
+    MIN_GAP_S: 7200,      // dawn rest before the next dusk (2 h)
+    LEDGER_CAP: 30,       // night-ledger entries kept
+  }),
 });
 
 // Deep-copies defaults into a LIVE-MUTABLE object (the dev panel tunes the
