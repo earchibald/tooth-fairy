@@ -61,7 +61,8 @@ Phases 2–4. This spec records decisions in place of interactive approval.
 
 - `js/ui/hoard.js` is node-importable (no DOM access at module scope), like
   juice.js. Exports: `tierFor`, `shapesFor`, `drawHoard(ctx2d, opts)` where
-  `opts = { w, h, count, vfx, colors, reducedMotion }`.
+  `opts = { w, h, count, vfx, colors }` — drawing is static, so
+  reduced-motion handling stays in the conveyor (which spawns no glints).
 - `drawHoard` dispatches to one painter per tier id. Painters draw vector
   shapes anchored to a ground line at the canvas bottom, at `vfx.hoard.alpha`,
   in the palette's `--accent`/`--glow` colors passed via `opts.colors`.
@@ -108,11 +109,13 @@ hoard: {
   are shared knobs.
 - Tier `min` values are art thresholds, fixed in code — not sliders. The VFX
   tab can still nudge them like any vfx value if ever needed.
-- The `merge()` in vfx.js copies arrays wholesale (`defaults.slice()`), so a
-  tuned/override `tiers` array replaces the default array. The Workshop
-  writes `units`/`px` through paths like `['hoard', 'tiers', 3, 'units']` —
-  setPath/getPath already handle numeric segments as object keys, and arrays
-  accept them. A config test pins the round-trip.
+- The `merge()` in vfx.js currently copies arrays as `defaults.slice()` and
+  silently ignores overrides — tier overrides would be dropped. This phase
+  fixes it: array defaults merge per index, accepting either an array or a
+  numeric-keyed object (`{ 3: { units: 7 } }`, which is what setPath writes
+  into the JSON override layer). The Hoard tab writes `units`/`px` through
+  paths like `['hoard', 'tiers', 3, 'units']`. A config test pins the
+  round-trip through `buildVfx`.
 
 ## 5. The Hoard tab (dev panel)
 
