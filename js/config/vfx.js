@@ -41,6 +41,21 @@ export const VFX_DEFAULTS = Object.freeze({
     buySweep:  Object.freeze({ alpha: 0.22, ms: 700 }),
     ramp:      Object.freeze({ rateLo: 10, rateHi: 1e9, sizeHi: 1.6, glowHi: 1.8, trailHi: 2.5, scrollHi: 3 }),
   }),
+  hoard: Object.freeze({    // the stash on the banner; the Hoard tab tunes these
+    alpha: 0.5,             // whole-hoard opacity
+    glintPerS: 0.8,         // sparkle rate across the stash while animating
+    centerGapPx: 72,        // clear zone around the tap button
+    tiers: Object.freeze([  // min = tooth count where the tier begins
+      Object.freeze({ id: 'sack',       min: 1,    units: 1,  px: 34 }),
+      Object.freeze({ id: 'jars',       min: 1e2,  units: 7,  px: 22 }),
+      Object.freeze({ id: 'chests',     min: 1e4,  units: 6,  px: 30 }),
+      Object.freeze({ id: 'piles',      min: 1e6,  units: 5,  px: 40 }),
+      Object.freeze({ id: 'warehouses', min: 1e9,  units: 6,  px: 52 }),
+      Object.freeze({ id: 'silos',      min: 1e12, units: 9,  px: 58 }),
+      Object.freeze({ id: 'mountains',  min: 1e15, units: 5,  px: 72 }),
+      Object.freeze({ id: 'moons',      min: 1e18, units: 6,  px: 18 }),
+    ]),
+  }),
   palettes: Object.freeze({   // data-act drives these custom properties
     0: Object.freeze({ bg: '#10131c', surface: '#171b27', ink: '#d7dceb', dim: '#8b93ad', accent: '#7b96c9', glow: '#a8c0ea' }),
     1: Object.freeze({ bg: '#0e1220', surface: '#151a2b', ink: '#dde2f0', dim: '#8f97b2', accent: '#84a1d8', glow: '#b4cbf2' }),
@@ -79,9 +94,16 @@ export const VFX_DEFAULTS = Object.freeze({
 });
 
 // Deep-copies defaults into a live-mutable object; unknown keys ignored.
+// Array defaults merge per index — the override may be an array or a
+// numeric-keyed object (what setPath writes into the JSON override layer).
 function merge(defaults, overrides) {
   const src = overrides && typeof overrides === 'object' ? overrides : {};
-  if (Array.isArray(defaults)) return defaults.slice();
+  if (Array.isArray(defaults)) {
+    return defaults.map((d, i) => {
+      if (d && typeof d === 'object') return merge(d, src[i]);
+      return i in src ? src[i] : d;
+    });
+  }
   const out = {};
   for (const k of Object.keys(defaults)) {
     const d = defaults[k];

@@ -10,6 +10,7 @@ import { buildScript } from '../js/config/script.js';
 import { buildContracts } from '../js/config/contracts.js';
 import { buildVfx, VFX_DEFAULTS } from '../js/config/vfx.js';
 import { TUNED } from '../js/config/tuned.js';
+import { NAME_DEFAULTS } from '../js/config/names.js';
 
 test('every config module imports and builds', () => {
   const cfg = buildConstants();
@@ -55,4 +56,33 @@ test('every config module imports and builds', () => {
   };
   everyKey(VFX_DEFAULTS, buildVfx());
   assert.ok(!('bogusKey' in buildVfx({ bogusKey: 1 })));
+});
+
+test('hoard tiers: ascending mins from 1, names cover every id', () => {
+  const tiers = VFX_DEFAULTS.hoard.tiers;
+  assert.equal(tiers[0].min, 1);
+  for (let i = 1; i < tiers.length; i++) {
+    assert.ok(tiers[i].min > tiers[i - 1].min, `tier ${i} min not ascending`);
+  }
+  for (const t of tiers) {
+    assert.ok(t.units >= 1 && t.px > 0, `tier ${t.id} bad units/px`);
+    assert.equal(typeof NAME_DEFAULTS.hoard[t.id], 'string', `no name for ${t.id}`);
+  }
+});
+
+test('vfx merge: numeric-keyed override reaches inside the tiers array', () => {
+  const vfx = buildVfx({ hoard: { tiers: { 3: { units: 9 } } } });
+  assert.equal(vfx.hoard.tiers[3].units, 9);
+  assert.equal(vfx.hoard.tiers[3].id, VFX_DEFAULTS.hoard.tiers[3].id);
+  assert.equal(vfx.hoard.tiers[2].units, VFX_DEFAULTS.hoard.tiers[2].units);
+  assert.equal(vfx.hoard.tiers.length, VFX_DEFAULTS.hoard.tiers.length);
+  assert.ok(Array.isArray(vfx.hoard.tiers));
+});
+
+test('vfx merge: unaffected arrays still deep-copy', () => {
+  const vfx = buildVfx({});
+  assert.notEqual(vfx.constellations.littlest.points,
+    VFX_DEFAULTS.constellations.littlest.points);
+  assert.deepEqual(vfx.constellations.littlest.points,
+    [...VFX_DEFAULTS.constellations.littlest.points].map((p) => [...p]));
 });

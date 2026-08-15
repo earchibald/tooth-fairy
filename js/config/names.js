@@ -52,6 +52,16 @@ export const NAME_DEFAULTS = Object.freeze({
     ferryman:   Object.freeze({ name: 'THE FERRYMAN',       flavor: 'a different river every town. same hat.' }),
     toothfairy: Object.freeze({ name: 'THE TOOTH FAIRY',    flavor: 'her. up there. finally on the ledger\'s cover.' }),
   }),
+  hoard: Object.freeze({
+    sack: 'a little sack',
+    jars: 'the jars',
+    chests: 'the chests',
+    piles: 'piles and piles',
+    warehouses: 'the warehouses',
+    silos: 'the silo fields',
+    mountains: 'the white mountains',
+    moons: 'the borrowed moons',
+  }),
   loom: Object.freeze({ name: 'LULLABY LOOM', flavor: 'weaves a hush you can stack.' }),
   multName: 'apiece',            // threshold upgrade label suffix: "×2 apiece"
   multNames: Object.freeze({
