@@ -154,7 +154,7 @@ function buildPanel(ctx) {
   document.body.appendChild(panel);
 
   const tabs = {
-    Workshop: tabWorkshop, Script: tabScript, Balance: tabBalance,
+    Workshop: tabWorkshop, Hoard: tabHoard, Script: tabScript, Balance: tabBalance,
     Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
   };
   const built = {};
@@ -180,7 +180,7 @@ function buildPanel(ctx) {
       btn.classList.toggle('on', btn.textContent === name);
     }
     while (body.firstChild) body.removeChild(body.firstChild);
-    panel.classList.toggle('devPanel--drawer', name === 'Workshop');
+    panel.classList.toggle('devPanel--drawer', name === 'Workshop' || name === 'Hoard');
     onHide = tabs[name](body, ctx) || null;
   }
 
@@ -350,6 +350,38 @@ const WORKSHOP_KNOBS = [
   ] },
 ];
 
+// One live range-slider row: writes through to the live vfx object AND the
+// tf-ov-vfx override layer, exactly like the Workshop's original rows.
+function sliderRow(body, ctx, ov, knob, onChange) {
+  const defVal = getPath(VFX_DEFAULTS, knob.path);
+  const row = el('div', 'devRow');
+  row.appendChild(el('span', 'path', knob.label || knob.path[knob.path.length - 1]));
+  const input = document.createElement('input');
+  input.type = 'range';
+  input.min = String(knob.min);
+  input.max = String(knob.max);
+  input.step = String(knob.step);
+  const current = getPath(ctx.vfx, knob.path);
+  input.value = String(current);
+  const val = el('span', 'val', String(current));
+  const def = el('span', 'def', 'default ' + defVal);
+  const reset = el('button', 'mini', 'reset');
+  row.append(input, val, def, reset);
+  row.classList.toggle('changed', current !== defVal);
+  function apply(value) {
+    setPath(ctx.vfx, knob.path, value);
+    if (value === defVal) deletePath(ov, knob.path);
+    else setPath(ov, knob.path, value);
+    saveOv('vfx', ov);
+    val.textContent = String(value);
+    row.classList.toggle('changed', value !== defVal);
+    if (onChange) onChange();
+  }
+  input.addEventListener('input', () => apply(Number(input.value)));
+  reset.addEventListener('click', () => { input.value = String(defVal); apply(defVal); });
+  body.appendChild(row);
+}
+
 function tabWorkshop(body, ctx) {
   body.appendChild(el('div', 'devNote',
     'the juice studio. sliders apply live and persist like every dev override. ' +
@@ -388,33 +420,7 @@ function tabWorkshop(body, ctx) {
   for (const group of WORKSHOP_KNOBS) {
     body.appendChild(el('h3', null, group.title));
     for (const knob of group.rows) {
-      const defVal = getPath(VFX_DEFAULTS, knob.path);
-      const row = el('div', 'devRow');
-      row.appendChild(el('span', 'path', knob.path[knob.path.length - 1]));
-      const input = document.createElement('input');
-      input.type = 'range';
-      input.min = String(knob.min);
-      input.max = String(knob.max);
-      input.step = String(knob.step);
-      const current = getPath(ctx.vfx, knob.path);
-      input.value = String(current);
-      const val = el('span', 'val', String(current));
-      const def = el('span', 'def', 'default ' + defVal);
-      const reset = el('button', 'mini', 'reset');
-      row.append(input, val, def, reset);
-      row.classList.toggle('changed', current !== defVal);
-      function apply(value) {
-        setPath(ctx.vfx, knob.path, value);
-        if (value === defVal) deletePath(ov, knob.path);
-        else setPath(ov, knob.path, value);
-        saveOv('vfx', ov);
-        val.textContent = String(value);
-        row.classList.toggle('changed', value !== defVal);
-        ctx.ui.applyTapVars();
-      }
-      input.addEventListener('input', () => apply(Number(input.value)));
-      reset.addEventListener('click', () => { input.value = String(defVal); apply(defVal); });
-      body.appendChild(row);
+      sliderRow(body, ctx, ov, knob, () => ctx.ui.applyTapVars());
     }
   }
 
@@ -469,6 +475,95 @@ function tabWorkshop(body, ctx) {
     ctx.ui.conveyor.setRate(0);
     ctx.ui.conveyor.flush();
   };
+}
+
+// ---------- Hoard ----------
+// One mini-tab per stash tier: scrub the count within the tier, tune the
+// tier's shapes, watch the banner underneath. Preview never touches state.
+
+const HOARD_SHARED_KNOBS = [
+  { path: ['hoard', 'alpha'], min: 0, max: 1, step: 0.01 },
+  { path: ['hoard', 'glintPerS'], min: 0, max: 10, step: 0.1 },
+  { path: ['hoard', 'centerGapPx'], min: 40, max: 160, step: 2 },
+];
+
+function tabHoard(body, ctx) {
+  body.appendChild(el('div', 'devNote',
+    'the stash, tier by tier. pick a tier to preview it on the banner; ' +
+    'scrub within it; tune its shapes. save and release live in the Workshop tab.'));
+
+  const tiers = ctx.vfx.hoard.tiers;
+  const names = (ctx.names && ctx.names.hoard) || NAME_DEFAULTS.hoard;
+  const strip = el('div', 'devBar');
+  const detail = el('div');
+  body.append(strip, detail);
+
+  const redraw = () => ctx.ui.conveyor.redraw();
+  const preview = (count) => {
+    ctx.ui.conveyor.setHoardPreview(count);
+  };
+
+  function tierBounds(i) {
+    const lgMin = Math.log10(tiers[i].min);
+    const lgNext = i + 1 < tiers.length ? Math.log10(tiers[i + 1].min) : lgMin + 6;
+    return { lgMin, lgNext };
+  }
+
+  function showTier(i) {
+    for (const [j, b] of [...strip.children].entries()) {
+      b.classList.toggle('on', j === i);
+    }
+    while (detail.firstChild) detail.removeChild(detail.firstChild);
+    const { lgMin, lgNext } = tierBounds(i);
+    preview(Math.pow(10, (lgMin + lgNext) / 2));
+
+    // scrub
+    detail.appendChild(el('h3', null, names[tiers[i].id] + ' — scrub'));
+    const row = el('div', 'devRow');
+    row.appendChild(el('span', 'path', 'teeth'));
+    const scrub = document.createElement('input');
+    scrub.type = 'range';
+    scrub.min = '0';
+    scrub.max = '1';
+    scrub.step = '0.001';
+    scrub.value = '0.5';
+    const readout = el('span', 'val', fmt(Math.pow(10, (lgMin + lgNext) / 2)));
+    scrub.addEventListener('input', () => {
+      const count = Math.pow(10, lgMin + Number(scrub.value) * (lgNext - lgMin));
+      readout.textContent = fmt(count);
+      preview(count);
+    });
+    row.append(scrub, readout);
+    if (i === tiers.length - 1) {
+      const inf = el('button', 'mini', '∞');
+      inf.addEventListener('click', () => { readout.textContent = '∞'; preview(Infinity); });
+      row.appendChild(inf);
+    }
+    const live = el('button', 'mini', 'live');
+    live.addEventListener('click', () => { readout.textContent = 'live'; preview(null); });
+    row.appendChild(live);
+    detail.appendChild(row);
+
+    // tier knobs + shared knobs
+    const ov = loadOv('vfx');
+    detail.appendChild(el('h3', null, 'this tier'));
+    sliderRow(detail, ctx, ov,
+      { path: ['hoard', 'tiers', i, 'units'], min: 1, max: 14, step: 1 }, redraw);
+    sliderRow(detail, ctx, ov,
+      { path: ['hoard', 'tiers', i, 'px'], min: 8, max: 120, step: 1 }, redraw);
+    detail.appendChild(el('h3', null, 'whole hoard'));
+    for (const knob of HOARD_SHARED_KNOBS) sliderRow(detail, ctx, ov, knob, redraw);
+  }
+
+  tiers.forEach((t, i) => {
+    const label = i === tiers.length - 1 ? names[t.id] + ' ∞' : names[t.id];
+    const b = el('button', 'devTab', label);
+    b.addEventListener('click', () => showTier(i));
+    strip.appendChild(b);
+  });
+  showTier(0);
+
+  return () => preview(null);
 }
 
 // ---------- Script ----------
