@@ -221,6 +221,7 @@ export function buildUI(app, ctx) {
     set('countShow', state.counterShown, (v) => count.classList.toggle('show', v));
     const rps = effectiveRatePerSec(state, cfg);
     conveyor.setRate(rps);
+    conveyor.setTeeth(Math.floor(state.teeth));
     set('rate', rps > 0 ? '≈ ' + fmt(rps) + names.meters.perSec : '', (v) => {
       rate.textContent = v;
     });

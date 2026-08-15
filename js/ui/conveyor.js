@@ -4,6 +4,7 @@
 
 import { toothPath2D } from './tooth.js';
 import { makeBatcher, rampFactor, makeParticles } from './juice.js';
+import { drawHoard, glintPoint } from './hoard.js';
 export { makeBatcher } from './juice.js';
 
 export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
@@ -19,6 +20,9 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   const previewBatcher = makeBatcher(ticksPerBatch);
   const parts = makeParticles();
   let rate = 0;
+  let teeth = 0;
+  let hoardPreview = null;
+  const hoardCount = () => hoardPreview ?? teeth;
   let running = false;
   let lastDraw = 0;
   let scroll = 0;
@@ -75,6 +79,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       spark: css.getPropertyValue('--glow').trim() || '#a8c0ea',
       ripple: css.getPropertyValue('--accent').trim() || '#7b96c9',
       sweep: '#e8d99a',
+      accent: css.getPropertyValue('--accent').trim() || '#7b96c9',
+      glow: css.getPropertyValue('--glow').trim() || '#a8c0ea',
     };
   }
 
@@ -87,6 +93,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     for (let x = (scroll % gap) - gap; x < w + gap; x += gap) {
       drawTooth(x, y, size, null, 0.16);
     }
+    drawHoard(ctx2d, { w, h, count: hoardCount(), vfx, colors: colors() });
   }
 
   function frame(now) {
@@ -126,6 +133,13 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       if (Math.random() < perFrame) {
         parts.spawnSparks(x, y - Math.sin(t * Math.PI) * 7, now,
           { count: 1, size: 1.4, spreadPx: 8, lifeMs: vfx.juice.inbound.trailLife });
+      }
+    }
+    if (!reducedMotion && Math.random() < vfx.hoard.glintPerS / 60) {
+      const p = glintPoint({ w, h, count: hoardCount(), vfx, rand: Math.random });
+      if (p) {
+        parts.spawnSparks(p.x, p.y, now,
+          { count: 1, size: 1.3, spreadPx: 4, lifeMs: 700 });
       }
     }
     parts.draw(ctx2d, now, colors(), w, h);
@@ -178,6 +192,16 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       wake();
     },
     setRate(rps) { rate = rps; },
+    // The hoard reads live teeth unless a Workshop preview overrides them.
+    setTeeth(count) {
+      if (count === teeth) return;
+      teeth = count;
+      if (!running) drawStatic();
+    },
+    setHoardPreview(countOrNull) {
+      hoardPreview = countOrNull;
+      if (!running) drawStatic();
+    },
     redraw: drawStatic,
     // Discards only the preview batcher and removes in-flight preview
     // sprites — mid-flight synthetic teeth vanish on tab close; real pooled
