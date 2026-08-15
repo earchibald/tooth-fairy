@@ -355,7 +355,7 @@ const WORKSHOP_KNOBS = [
 function sliderRow(body, ctx, ov, knob, onChange) {
   const defVal = getPath(VFX_DEFAULTS, knob.path);
   const row = el('div', 'devRow');
-  row.appendChild(el('span', 'path', knob.label || knob.path[knob.path.length - 1]));
+  row.appendChild(el('span', 'path', knob.path[knob.path.length - 1]));
   const input = document.createElement('input');
   input.type = 'range';
   input.min = String(knob.min);
@@ -487,6 +487,13 @@ const HOARD_SHARED_KNOBS = [
   { path: ['hoard', 'centerGapPx'], min: 40, max: 160, step: 2 },
 ];
 
+// fmt()'s largest unit is q (1e15), so counts at or beyond 1e18 would render
+// as a run-on digit string (e.g. '1000000q'). Scrub-only: switch to a
+// log10 readout at that point; the '∞'/'live' button texts are unaffected.
+function scrubFmt(count) {
+  return count >= 1e18 ? '10^' + Math.log10(count).toFixed(1) : fmt(count);
+}
+
 function tabHoard(body, ctx) {
   body.appendChild(el('div', 'devNote',
     'the stash, tier by tier. pick a tier to preview it on the banner; ' +
@@ -527,10 +534,10 @@ function tabHoard(body, ctx) {
     scrub.max = '1';
     scrub.step = '0.001';
     scrub.value = '0.5';
-    const readout = el('span', 'val', fmt(Math.pow(10, (lgMin + lgNext) / 2)));
+    const readout = el('span', 'val', scrubFmt(Math.pow(10, (lgMin + lgNext) / 2)));
     scrub.addEventListener('input', () => {
       const count = Math.pow(10, lgMin + Number(scrub.value) * (lgNext - lgMin));
-      readout.textContent = fmt(count);
+      readout.textContent = scrubFmt(count);
       preview(count);
     });
     row.append(scrub, readout);

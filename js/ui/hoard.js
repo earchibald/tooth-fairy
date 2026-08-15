@@ -216,6 +216,15 @@ export function drawHoard(ctx2d, { w, h, count, vfx, colors }) {
   ctx2d.restore();
 }
 
+// A cheap signature of what the hoard would draw: redraws only when this
+// changes. Quantizes the newest shape's fill to 1/64.
+export function hoardSig(count, tiers) {
+  const t = tierFor(count, tiers);
+  if (!t) return '';
+  const { shown, fill } = shapesFor(t.progress, tiers[t.index].units);
+  return t.index + ':' + shown + ':' + Math.round(fill * 64);
+}
+
 // A point on the current stash for a glint particle, or null when the hoard
 // is empty. `rand` is injected so tests pin the output.
 export function glintPoint({ w, h, count, vfx, rand }) {

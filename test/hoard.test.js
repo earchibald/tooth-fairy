@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tierFor, shapesFor, slotXs, drawHoard, glintPoint } from '../js/ui/hoard.js';
+import { tierFor, shapesFor, slotXs, drawHoard, glintPoint, hoardSig } from '../js/ui/hoard.js';
 
 const TIERS = [
   { id: 'sack',       min: 1,    units: 1,  px: 34 },
@@ -108,6 +108,32 @@ test('drawHoard: zero paints nothing, Infinity does not throw', () => {
   const cInf = stubCtx();
   drawHoard(cInf, { w: 800, h: 96, count: Infinity, vfx: VFX, colors: COLORS });
   assert.ok(cInf.calls.length > 0);
+});
+
+test('hoardSig: empty string below the first tier', () => {
+  assert.equal(hoardSig(0, TIERS), '');
+  assert.equal(hoardSig(0.5, TIERS), '');
+  assert.equal(hoardSig(-5, TIERS), '');
+  assert.equal(hoardSig(NaN, TIERS), '');
+});
+
+test('hoardSig: same bucket, same signature', () => {
+  assert.equal(hoardSig(50, TIERS), hoardSig(50.0001, TIERS));
+});
+
+test('hoardSig: different signature across a tier boundary', () => {
+  assert.notEqual(hoardSig(99, TIERS), hoardSig(100, TIERS));
+});
+
+test('hoardSig: different signature across a fill step', () => {
+  assert.notEqual(hoardSig(150, TIERS), hoardSig(900, TIERS));
+});
+
+test('hoardSig: Infinity is stable and matches any count at or beyond 1e21', () => {
+  const sigInf = hoardSig(Infinity, TIERS);
+  assert.equal(sigInf, hoardSig(1e21, TIERS));
+  assert.equal(sigInf, hoardSig(1e24, TIERS));
+  assert.equal(sigInf, hoardSig(1e30, TIERS));
 });
 
 test('glintPoint: null when empty, on-stash when not, deterministic rand', () => {

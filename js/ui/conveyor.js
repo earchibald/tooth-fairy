@@ -4,7 +4,7 @@
 
 import { toothPath2D } from './tooth.js';
 import { makeBatcher, rampFactor, makeParticles } from './juice.js';
-import { drawHoard, glintPoint } from './hoard.js';
+import { drawHoard, glintPoint, hoardSig } from './hoard.js';
 export { makeBatcher } from './juice.js';
 
 export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
@@ -23,6 +23,14 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   let teeth = 0;
   let hoardPreview = null;
   const hoardCount = () => hoardPreview ?? teeth;
+  let lastHoardSig = hoardSig(hoardCount(), vfx.hoard.tiers);
+  // When parked, only redraw the static frame (incl. getComputedStyle) if
+  // what the hoard would actually show has changed — a changed teeth count
+  // alone is not enough (most digit changes don't move a shape or a tier).
+  function redrawIfHoardChanged() {
+    const sig = hoardSig(hoardCount(), vfx.hoard.tiers);
+    if (sig !== lastHoardSig) { lastHoardSig = sig; drawStatic(); }
+  }
   let running = false;
   let lastDraw = 0;
   let scroll = 0;
@@ -84,7 +92,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     };
   }
 
-  function drawStatic() {
+  function drawStatic(cols) {
     ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx2d.clearRect(0, 0, w, h);
     const size = vfx.motif.toothPx;
@@ -93,7 +101,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     for (let x = (scroll % gap) - gap; x < w + gap; x += gap) {
       drawTooth(x, y, size, null, 0.16);
     }
-    drawHoard(ctx2d, { w, h, count: hoardCount(), vfx, colors: colors() });
+    drawHoard(ctx2d, { w, h, count: hoardCount(), vfx, colors: cols || colors() });
   }
 
   function frame(now) {
@@ -102,7 +110,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     if (now - lastDraw < 15) { requestAnimationFrame(frame); return; }
     lastDraw = now;
     scroll += (vfx.motif.scrollPxPerS * ramp('scrollHi')) / 60;
-    drawStatic();
+    const cols = colors();
+    drawStatic(cols);
     const y = h / 2;
     const size = vfx.motif.toothPx;
     for (let i = sprites.length - 1; i >= 0; i--) {
@@ -135,19 +144,26 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
           { count: 1, size: 1.4, spreadPx: 8, lifeMs: vfx.juice.inbound.trailLife });
       }
     }
-    if (!reducedMotion && Math.random() < vfx.hoard.glintPerS / 60) {
+    // Glints alone must never keep this loop alive: they only spawn while
+    // real inbound traffic (sprites) is in flight, so once traffic stops the
+    // last glints decay and the loop parks — no self-sustaining glint chain.
+    if (!reducedMotion && sprites.length > 0 && Math.random() < vfx.hoard.glintPerS / 60) {
       const p = glintPoint({ w, h, count: hoardCount(), vfx, rand: Math.random });
       if (p) {
         parts.spawnSparks(p.x, p.y, now,
           { count: 1, size: 1.3, spreadPx: 4, lifeMs: 700 });
       }
     }
-    parts.draw(ctx2d, now, colors(), w, h);
+    parts.draw(ctx2d, now, cols, w, h);
     // A pooled mid-batch credit does not by itself keep frames hot: nothing
     // drains the pool except a future credit(), which already calls wake().
     // A pending pool alone must never re-arm this loop.
     if (sprites.length || parts.step(now) > 0) requestAnimationFrame(frame);
-    else { running = false; drawStatic(); }
+    else {
+      running = false;
+      lastHoardSig = hoardSig(hoardCount(), vfx.hoard.tiers);
+      drawStatic(cols);
+    }
   }
 
   function wake() {
@@ -196,11 +212,11 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     setTeeth(count) {
       if (count === teeth) return;
       teeth = count;
-      if (!running) drawStatic();
+      if (!running) redrawIfHoardChanged();
     },
     setHoardPreview(countOrNull) {
       hoardPreview = countOrNull;
-      if (!running) drawStatic();
+      if (!running) redrawIfHoardChanged();
     },
     redraw: drawStatic,
     // Discards only the preview batcher and removes in-flight preview
