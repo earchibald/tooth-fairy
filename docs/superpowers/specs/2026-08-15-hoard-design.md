@@ -107,8 +107,9 @@ hoard: {
   Painters interpret both (a mountain's `px` is peak height; a moon's is
   radius). These are the per-tier knobs; `alpha`/`glintPerS`/`centerGapPx`
   are shared knobs.
-- Tier `min` values are art thresholds, fixed in code — not sliders. The VFX
-  tab can still nudge them like any vfx value if ever needed.
+- Tier `min` values are art thresholds, fixed in code — not sliders. (The
+  VFX tab's leaf-walk skips arrays, so tier fields are reachable only from
+  the Hoard tab; changing a `min` means editing vfx.js. Accepted.)
 - The `merge()` in vfx.js currently copies arrays as `defaults.slice()` and
   silently ignores overrides — tier overrides would be dropped. This phase
   fixes it: array defaults merge per index, accepting either an array or a
@@ -159,8 +160,9 @@ a config test asserts one name per tier id.
   - `shapesFor`: p=0 → 1 shape fill 0; p=1 → all units full; midpoints exact.
   - `drawHoard` with a recording 2d-context stub (records method calls):
     every tier id paints at least one fill/stroke; count 0 paints nothing;
-    `Infinity` paints without throwing; all x coordinates stay within
-    `[0, w]` and outside the center gap.
+    `Infinity` paints without throwing. Slot centers (`slotXs`) stay within
+    `[0, w]` and outside the center gap; painters may overhang their slot by
+    up to their half-width (cosmetic, tuned live in the Hoard tab).
 - `test/config.test.js` additions: `vfx.hoard.tiers` mins strictly ascending
   and starting at 1; every tier id has a `names.hoard` entry; tuned/override
   round-trip through a numeric path (`hoard.tiers.3.units`).
