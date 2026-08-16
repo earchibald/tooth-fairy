@@ -267,13 +267,12 @@ document.addEventListener('keydown', (e) => {
     case ' ': case 't': e.preventDefault(); doTap(); break;
     case 's': dispatch('tiptoe'); break;
     case 'n': dispatch('readNote'); break;
-    case 'j':
-      ui.tabs.show('log');
-      dispatch('openJournal');
-      break;
+    case 'j': ui.tabs.show('log'); break;
     case 'Escape': ui.overlays.closeAll(); break;
     case '[': cycle(-1); break;
     case ']': cycle(1); break;
+    case 'ArrowLeft': e.preventDefault(); cycle(-1); break;
+    case 'ArrowRight': e.preventDefault(); cycle(1); break;
     default:
       if (e.key >= '1' && e.key <= '9') ui.roost.pressKey(Number(e.key));
   }

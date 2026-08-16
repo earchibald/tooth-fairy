@@ -63,27 +63,24 @@ export function buildUI(app, ctx) {
   notesChip.dataset.testid = 'notes-chip';
   notesChip.addEventListener('click', () => dispatch('readNote'));
   attachTip(notesChip, names.tips.notes);
-  const journalBtn = el('button', 'iconbtn', '☾');
-  journalBtn.title = names.verbs.journal;
-  journalBtn.setAttribute('aria-label', names.verbs.journal);
-  journalBtn.dataset.testid = 'journal-open';
-  journalBtn.hidden = true;
   const settingsBtn = el('button', 'iconbtn', '⚙');
   settingsBtn.dataset.testid = 'settings-open';
-  topbar.append(beliefMeter, stirMeter, starChip, spacer, notesChip, journalBtn, settingsBtn);
+  topbar.append(beliefMeter, stirMeter, starChip, spacer, notesChip, settingsBtn);
   app.appendChild(topbar);
 
-  // ---- tabs ----
-  const tabs = createTabs(app, names);
+  // ---- tabs (the bar sits below the panels, just above the counter) ----
+  const tabs = createTabs(app, names, (id) => {
+    if (id === 'log') dispatch('openJournal');
+  });
   attachTip(tabs.bar.children[0], names.tips.tabTonight);
   attachTip(tabs.bar.children[1], names.tips.tabLog);
   attachTip(tabs.bar.children[2], names.tips.tabRoost);
   attachTip(tabs.bar.children[3], names.tips.tabSky);
-  app.appendChild(tabs.bar);
   app.appendChild(tabs.panels.tonight);
   app.appendChild(tabs.panels.log);
   app.appendChild(tabs.panels.roost);
   app.appendChild(tabs.panels.sky);
+  app.appendChild(tabs.bar);
 
   // ---- stage ----
   const stageEl = el('main');
@@ -160,10 +157,6 @@ export function buildUI(app, ctx) {
   app.appendChild(tray);
 
   const overlays = createOverlays(app, ctx);
-  journalBtn.addEventListener('click', () => {
-    tabs.show('log');
-    dispatch('openJournal');
-  });
   settingsBtn.addEventListener('click', () => overlays.openSettings());
 
   let tapPressTimer = null;
@@ -209,7 +202,9 @@ export function buildUI(app, ctx) {
   const set = (k, v, fn) => { if (cache[k] !== v) { cache[k] = v; fn(v); } };
 
   function update(state) {
-    if (state.beatQueue.length && tabs.active() !== 'tonight') tabs.show('tonight');
+    set('beatYank', state.beatQueue[0] || '', (id) => {
+      if (id) tabs.show('tonight');
+    });
     const palette = vfx.palettes[state.act] || vfx.palettes[0];
     set('act', state.act, () => {
       app.dataset.act = String(state.act);
@@ -254,7 +249,6 @@ export function buildUI(app, ctx) {
     set('skyBadge', state.stars >= 1 &&
       Object.keys(cfg.CONSTELLATIONS).some((id) => !figureDone(state, cfg, id)),
       (v) => tabs.setBadge('sky', v));
-    set('journal', state.beatsSeen.length > 3, (v) => { journalBtn.hidden = !v; });
     set('tiptoe', !state.tiptoeShown ? '' :
       state.tiptoeTicks > 0 ? `${names.verbs.tiptoe} ${(state.tiptoeTicks * cfg.TICK_MS / 1000).toFixed(0)}s` :
       names.verbs.tiptoe, (v) => {

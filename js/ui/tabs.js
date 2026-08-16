@@ -1,7 +1,7 @@
 // Tab layer. Panels persist; switching toggles hidden. Badges are dots.
 // The sky tab's button starts hidden; render.js reveals it once stars
 // have ever been earned.
-export function createTabs(app, names) {
+export function createTabs(app, names, onShow) {
   const bar = document.createElement('nav');
   bar.className = 'tabBar';
   const panels = {};
@@ -25,12 +25,14 @@ export function createTabs(app, names) {
     panels[id] = panel;
   }
   function show(id) {
+    const prev = current;
     current = id;
     for (const key of Object.keys(panels)) {
       panels[key].hidden = key !== id;
       buttons[key].btn.classList.toggle('active', key === id);
     }
     if (id !== 'tonight') buttons[id].dot.hidden = true;
+    if (onShow && prev !== id) onShow(id, prev);
   }
   show('tonight');
   buttons.sky.btn.hidden = true;
