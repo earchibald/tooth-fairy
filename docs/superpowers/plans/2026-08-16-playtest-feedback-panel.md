@@ -13,6 +13,8 @@
 | Submit transport | Broker Lambda Function URL → one-shot presigned POST → direct S3 upload. | Exactly the alignment-issues design. No AWS keys in the browser. |
 | Offline path | `FileSink` writes a dependency-free STORE-only zip via a download. | Playtesting must work before any infra exists. |
 | Bucket | New, dedicated: `earchibald-tf-session-submissions`. Own broker, own analyst user. | Reusing the HYT broker means editing another project's Lambda regex. |
+| Is the submission stack tooth-fairy code? | No. `submission-broker/` (Terraform + Lambda) and `js/submit/` (browser client) are standalone, extractable packages with tooth-fairy as their first consumer. | Owner's call. Both must survive `git mv` into their own repo with no edits, so neither may name the game. |
+| Broker filename rules | Data-driven from a `SUBMISSION_SCHEMA` JSON document, not hardcoded regexes. | A second consumer must not have to edit Lambda code. |
 | Transcription | Local `mlx_whisper --model mlx-community/whisper-base.en-mlx`, `whisper-cli` fallback. | No API key, no upload. `--model` is load-bearing; the default `tiny` mangles words. |
 | Testability | All logic in pure DOM-free modules under `js/playtest/`; `panel.js` is a thin shell. | The repo has zero DOM tests and no jsdom. |
 
@@ -126,35 +128,70 @@ The header embeds the base64 save so a report can reproduce the exact run.
 
 Tests: line count, parse-round-trip, filename numbering, header carries the save.
 
-## 5. Zip fallback — `js/playtest/zip.js`
+## 5. Portable submission client — `js/submit/` (extractable)
 
-Copy `alignment-issues/game/js/telemetry/zip.js` verbatim (STORE-only, dependency-free,
-CRC32 + local headers + central directory). Copy its test too. Do not rewrite it.
+`js/submit/` is a **standalone, reusable package**, not tooth-fairy code. It must import
+nothing from `js/engine/`, `js/ui/`, `js/config/`, or `js/playtest/`. Its only inputs are a
+config object and a caller-supplied file list. Dropping the directory into another vanilla-ESM
+project must work with no edits. `js/submit/README.md` states that contract and shows a
+minimal consumer.
 
-## 6. Sinks — `js/playtest/sinks.js`
-
-```js
-export function createFileSink()            // zip -> anchor download, always available
-export function createS3Sink(env)           // broker grant -> presigned POST, per file
-export const SubmitSink                     // S3 when SUBMIT_ENV.enabled, else file
+```
+js/submit/
+  README.md
+  client.js     createBrokerSink(env), createFileSink(deps), pickSink(env, deps)
+  zip.js        STORE-only zip writer
+  env.js        committed inactive stub
 ```
 
-`createS3Sink` is a direct port of `alignment-issues/game/js/telemetry/sinks.js:139-197`:
-per file, POST `{token, sessionId, filename, size, contentType}` to `env.brokerUrl`, receive
-`{url, fields}`, `FormData` them plus the file, POST to S3. Keep `baseType()` — it strips
-`;codecs=opus`, without which the broker refuses with 415. No retry loop. Report progress
-through `onProgress(phase, file, done, total)`.
+A **submission** is the package's one input type — deliberately generic, with no game terms:
 
-`js/playtest/submit-env.js` is a committed inactive stub:
+```js
+{ sessionId, files: [ { name, blob, contentType } ] }
+```
+
+`createBrokerSink(env)` — port of `alignment-issues/game/js/telemetry/sinks.js:139-197`.
+Per file: POST `{token, sessionId, filename, size, contentType}` to `env.brokerUrl`, receive
+`{url, fields}`, put them plus the file into `FormData`, POST to S3. Keep `baseType()` — it
+strips `;codecs=opus`, without which the broker answers 415. No retry loop; a failure leaves
+the session local. Progress via `onProgress({phase, name, done, total})` where `phase` is
+`'start' | 'done'`.
+
+`createFileSink({ zip, download })` — builds a zip of the same files and hands it to the
+download callback. Always available, needs no infra.
+
+`pickSink(env, deps)` returns the broker sink when `env.enabled && env.brokerUrl`, else the
+file sink.
+
+`js/submit/env.js` is a committed inactive stub, overwritten at deploy time and **never**
+committed with a real token:
 
 ```js
 export const SUBMIT_ENV = { enabled: false, brokerUrl: '', token: '' };
 ```
 
-Never commit a real token. Deploy-time injection mirrors the HYT workflow step.
+`js/submit/zip.js` — copy `alignment-issues/game/js/telemetry/zip.js` verbatim (STORE-only,
+CRC32, local headers, central directory). Copy its test too. Do not rewrite it.
 
-Tests: `createS3Sink` with an injected `fetch` — grant refusal surfaces `reason`, content
-type is normalised, upload failure throws with the status, progress fires per file.
+Tests (`test/submit-client.test.js`, `test/submit-zip.test.js`) inject `fetch`: grant refusal
+surfaces the broker's `reason`, `audio/webm;codecs=opus` is normalised to `audio/webm`, an
+upload failure throws with its status, progress fires twice per file, and `pickSink` chooses
+correctly.
+
+## 6. Bridge — `js/playtest/submit.js`
+
+The thin consumer layer that keeps game knowledge out of `js/submit/`.
+
+```js
+export function toSubmission(bundle)   // bundle -> { sessionId, files: [...] }
+export function submitSession(bundle, deps)
+```
+
+`toSubmission` uses `bundleFilenames`/`bundleToJsonl` from section 4 to produce the jsonl file
+plus one file per voice entry. `submitSession` picks a sink and streams progress upward.
+
+Tests: file count and order, jsonl content type is `text/plain`, audio content types follow
+the recorded mime.
 
 ## 7. Recorder — `js/playtest/recorder.js`
 
@@ -235,46 +272,128 @@ if (PLAYTEST) {
 All player-visible copy goes in a new `names.playtest` block in `js/config/names.js` so
 `test/config.test.js` covers it.
 
-## 9. Infra — `infra/`
+## 9. Infra — `submission-broker/` (extractable product)
 
-Clone the HYT terraform, renamed and re-parameterised.
+The provisioning is **not** tooth-fairy infrastructure. It is a small reusable product —
+"give a browser a one-shot, token-gated write into a private S3 prefix" — and tooth-fairy is
+its first consumer. Build it so that `git mv submission-broker ../submission-broker && git init`
+yields a working standalone repo with no edits.
 
-- `infra/variables.tf`: `bucket_name` (default `earchibald-tf-session-submissions`),
-  `region` (`us-east-1`, matching the account default), `allowed_origins` (**list**, default
-  `["http://localhost:8123"]`), `submit_token` (sensitive), `expire_days` (90).
-  The list is the one real change from HYT — local playtesting needs `http://localhost:8123`
-  and a deployed build needs `https://earchibald.github.io`.
-- `infra/main.tf`: bucket + public-access block + AES256 SSE + lifecycle expiry +
-  TLS-only deny policy + CORS (POST, `allowed_origins`) + broker Lambda (`nodejs22.x`,
-  10 s, env `BUCKET`/`SUBMIT_TOKEN`) + Function URL (`authorization_type = "NONE"`,
-  CORS POST, `content-type`) + IAM: Lambda may only `s3:PutObject` on `submissions/*`;
-  analyst user `tf-analyst` may `GetObject`/`DeleteObject` on `submissions/*` and
-  `ListBucket` under that prefix.
-- `infra/lambda/validate.mjs`: port with tooth-fairy names.
-  - `SESSION_ID_RE = /^\d{13}-[a-z0-9]{4}$/`
-  - `filenameRe = new RegExp('^tf-session-' + sessionId + '(\\.jsonl|-v\\d+\\.(m4a|webm))$')`
-  - `JSONL_MAX_BYTES = 25MB`, `AUDIO_MAX_BYTES = 200MB`
-  - key = `submissions/${YYYY-MM-DD}/${sessionId}/${filename}`
-  - constant-time token compare over SHA-256 digests
-- `infra/lambda/broker.mjs`: port unchanged apart from the import of the new validator.
-- `infra/run.sh`: `init|plan|apply|outputs|destroy`, writes git-ignored `infra/outputs.json`.
-- `infra/terraform.tfvars.example`; `.gitignore` gains `infra/terraform.tfvars`,
-  `infra/*.tfstate*`, `infra/outputs.json`, `infra/lambda.zip`, `.terraform/`.
+```
+submission-broker/
+  README.md                      what it is, how to consume it, how to extract it
+  EXTRACTING.md                  the exact steps to break this out into its own repo
+  modules/broker/                the reusable Terraform module — no consumer names inside
+    main.tf variables.tf outputs.tf
+    lambda/broker.mjs            handler: validate -> presigned POST
+    lambda/schema.mjs            parse + validate a SUBMISSION_SCHEMA document
+    lambda/validate.mjs          pure grant validation, schema-driven
+  consumers/tooth-fairy/         the first consumer: 30 lines of Terraform
+    main.tf  terraform.tfvars.example  schema.json
+  run.sh                         run.sh <consumer> <init|plan|apply|outputs|destroy>
+```
 
-`test/broker-validate.test.js` covers the validator: bad token, bad session id, filename
-mismatch, oversize, wrong content type, and the happy key.
+**Nothing under `modules/` may name tooth-fairy, teeth, playtests, or `tf-`.** That is the
+extractability test, and the reviewer will grep for it.
 
-**Do not run `terraform apply` without asking.** It creates a publicly reachable Function URL.
+### The module interface (`modules/broker/variables.tf`)
 
-## 10. Retrieval CLI — `scripts/sessions.mjs`
+| Variable | Type | Notes |
+|---|---|---|
+| `name` | string | Resource name prefix, e.g. `tooth-fairy`. Used for the Lambda, role, and analyst user. |
+| `bucket_name` | string | Globally unique. |
+| `allowed_origins` | list(string) | Browser origins allowed to POST. **A list, not a single origin** — this is the one real change from HYT, which hardcoded one. |
+| `submit_token` | string, sensitive | Shared secret the browser presents. |
+| `schema` | string | The JSON submission schema, below. Passed to the Lambda as `SUBMISSION_SCHEMA`. |
+| `expire_days` | number, default 90 | Lifecycle expiry on `submissions/`. |
+| `create_analyst_user` | bool, default true | Emit a read/delete IAM user + access key. |
 
-Zero-dep port. `node scripts/sessions.mjs <list|pull|rm> [--latest] [--dest dir]`.
-Profile: `default` (this account has no `tf-analyst` profile until infra ships; read the
-profile from `TF_PROFILE`, defaulting to `default`). Bucket/region from `infra/outputs.json`,
-overridable by `TF_BUCKET` / `TF_REGION`. Every side effect injectable (`runner`) for tests.
-Sessions are grouped by the 4-part key and marked with 🎙 when any `-v\d+\.(m4a|webm)` exists.
+Outputs: `bucket`, `region`, `function_url`, `analyst_access_key_id`,
+`analyst_secret_access_key` (sensitive).
 
-`test/sessions-cli.test.js`: grouping, `--latest` selection, `rm --latest` refusal.
+Resources, ported from `alignment-issues/infra/main.tf`: private bucket with a full
+public-access block, AES256 SSE, lifecycle expiry plus abort-incomplete-multipart at 7 days,
+a bucket policy denying `s3:*` when `aws:SecureTransport` is false, CORS (`POST` only,
+`allowed_origins`), a `nodejs22.x` Lambda (10 s, env `BUCKET` + `SUBMIT_TOKEN` +
+`SUBMISSION_SCHEMA`) whose role may only `s3:PutObject` under `submissions/*`, a Function URL
+with `authorization_type = "NONE"` and matching CORS, and the analyst user restricted to
+`GetObject`/`DeleteObject` on `submissions/*` plus `ListBucket` conditioned on that prefix.
+
+### The submission schema
+
+The validator is data-driven so a new consumer never edits Lambda code. Schema document:
+
+```json
+{
+  "prefix": "tf-session",
+  "sessionIdPattern": "^\\d{13}-[a-z0-9]{4}$",
+  "keyTemplate": "submissions/{date}/{sessionId}/{filename}",
+  "files": [
+    { "suffix": ".jsonl",      "contentTypes": ["text/plain", "application/x-ndjson"], "maxBytes": 26214400 },
+    { "suffix": "-v{n}.m4a",   "contentTypes": ["audio/mp4"],   "maxBytes": 209715200 },
+    { "suffix": "-v{n}.webm",  "contentTypes": ["audio/webm"],  "maxBytes": 209715200 }
+  ]
+}
+```
+
+`lambda/schema.mjs` compiles it: `{n}` expands to `\d+`, every other character in a `suffix`
+is escaped, and the filename regex is
+`^<prefix>-<sessionId><suffixPattern>$`. `{date}` is the UTC `YYYY-MM-DD` of the request.
+The session id is matched against `sessionIdPattern` **before** it is interpolated anywhere,
+so a pattern that permits `/`, `.`, or `..` must be rejected at schema-compile time — a
+consumer must not be able to write a path-traversing schema.
+
+`lambda/validate.mjs` keeps HYT's shape: `validateGrant(body, {expectedToken, schema})` →
+`{ok:true, key, maxBytes, contentType}` or `{ok:false, status, reason}`. Token comparison
+stays constant-time over SHA-256 digests so differing lengths cannot throw. Refusals:
+503 submissions disabled · 403 bad token · 400 bad session id · 400 bad filename ·
+413 too large · 415 bad content type.
+
+`lambda/broker.mjs` is HYT's handler unchanged apart from reading the schema from the
+environment once at cold start.
+
+### The consumer
+
+`consumers/tooth-fairy/main.tf` is a provider block plus one `module "broker"` call with
+`name = "tooth-fairy"`, `bucket_name = "earchibald-tf-session-submissions"`,
+`allowed_origins = ["http://localhost:8123", "https://earchibald.github.io"]`, and
+`schema = file("${path.module}/schema.json")`. Region `us-east-1`, matching the account
+default. `run.sh <consumer> <cmd>` runs terraform in that consumer directory and writes
+git-ignored `submission-broker/consumers/<consumer>/outputs.json`.
+
+Tests: `test/broker-schema.test.js` (suffix compilation, `{n}` expansion, metacharacter
+escaping, rejection of a traversal-capable `sessionIdPattern`) and
+`test/broker-validate.test.js` (bad token, bad session id, filename mismatch, oversize, wrong
+content type, and the happy key for both a jsonl and a `-v2.webm`).
+
+`.gitignore` gains `submission-broker/**/terraform.tfvars`, `**/*.tfstate*`,
+`**/outputs.json`, `**/lambda.zip`, `**/.terraform/`.
+
+**Do not run `terraform apply`.** It creates a publicly reachable Function URL and is the
+human's call.
+
+## 10. Retrieval CLI — `scripts/submissions.mjs`
+
+Zero-dep port of `alignment-issues/scripts/sessions.mjs`, generalised the same way as the
+module: no bucket or prefix baked in.
+
+`node scripts/submissions.mjs <list|pull|rm> [sessionId] [--latest] [--dest dir]`
+
+Config resolution, first hit wins: `SUBMISSION_BUCKET` / `SUBMISSION_REGION` /
+`SUBMISSION_PROFILE` env vars, then `submission-broker/consumers/tooth-fairy/outputs.json`,
+then `submission.config.json` at the repo root. Profile defaults to `default` — the
+`tooth-fairy-analyst` user does not exist until infra ships, and this account's `default`
+credentials can already read the bucket.
+
+Shells out to `aws` via an injectable `runner`, exactly as HYT does. `list` paginates
+`s3api list-objects-v2` under `submissions/`, groups by the 4-part key, sorts newest first
+(session ids start with epoch ms, so lexicographic order is chronological), and marks a
+session 🎙 when any key matches `/-v\d+\.(m4a|webm)$/`. `pull` copies each key into `--dest`.
+`rm` deletes a named session and **refuses `--latest`**, because the most recent submission is
+the one you are most likely to want.
+
+`test/submissions-cli.test.js`: grouping, newest-first order, the 🎙 marker, `--latest`
+selection, and the `rm --latest` refusal.
 
 ## 11. Transcription — `scripts/transcribe.mjs`
 
@@ -333,7 +452,7 @@ transcript still renders, trail table rows match the samples.
 
 Modelled on `alignment-issues/.claude/skills/analyze-session/SKILL.md`.
 
-Sections: locate (S3 via `scripts/sessions.mjs`, or a local zip), transcribe
+Sections: locate (S3 via `scripts/submissions.mjs`, or a local zip), transcribe
 (`scripts/transcribe.mjs`, with the `--model` warning and the `afconvert` warning), merge
 (`scripts/playtest-merge.mjs`), **the delay caveat**, triage checklist, report template,
 and the checksum-before-delete rule.
@@ -358,9 +477,10 @@ on a mismatch — the recording is the only copy.
 `npm test` must stay green. New test files:
 
 `test/playtest-marker.test.js`, `test/playtest-entries.test.js`, `test/playtest-store.test.js`,
-`test/playtest-bundle.test.js`, `test/playtest-zip.test.js`, `test/playtest-sinks.test.js`,
-`test/playtest-recorder.test.js`, `test/broker-validate.test.js`, `test/sessions-cli.test.js`,
-`test/transcribe.test.js`, `test/playtest-merge.test.js`.
+`test/playtest-bundle.test.js`, `test/submit-zip.test.js`, `test/submit-client.test.js`,
+`test/playtest-submit.test.js`, `test/playtest-recorder.test.js`, `test/broker-schema.test.js`,
+`test/broker-validate.test.js`, `test/submissions-cli.test.js`, `test/transcribe.test.js`,
+`test/playtest-merge.test.js`.
 
 Browser verification (the panel DOM has no unit coverage) — with the game served on 8123 and
 the window **unoccluded**, because a covered window freezes rAF:
