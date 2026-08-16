@@ -3,3 +3,10 @@ node_modules/
 *.log
 .claude/settings.local.json
 dist/
+
+# submission-broker (Terraform)
+submission-broker/**/terraform.tfvars
+submission-broker/**/*.tfstate*
+submission-broker/**/outputs.json
+submission-broker/**/lambda.zip
+submission-broker/**/.terraform/
