@@ -35,4 +35,5 @@ test('deterministic and identity-cached', () => {
 test('extreme sizes return exactly n without throwing', () => {
   assert.equal(mosaicPoints(1).length, 1);
   assert.equal(mosaicPoints(200).length, 200);
+  assert.equal(mosaicPoints(2000).length, 2000);
 });

@@ -50,8 +50,9 @@ const cache = new Map();
 export function mosaicPoints(n) {
   if (cache.has(n)) return cache.get(n);
   let pts = [];
-  // Densify the grid until at least n cells land inside the silhouette.
-  for (let cols = Math.ceil(Math.sqrt(n)); cols <= 64; cols++) {
+  // Densify until the silhouette holds at least n cells; the interior
+  // fraction of the grid converges, so this always terminates.
+  for (let cols = Math.ceil(Math.sqrt(n)); pts.length < n; cols++) {
     const step = 100 / (cols + 1);
     pts = [];
     for (let gy = step; gy < 100; gy += step) {
@@ -59,7 +60,6 @@ export function mosaicPoints(n) {
         if (insideTooth(gx, gy)) pts.push({ x: gx, y: gy });
       }
     }
-    if (pts.length >= n) break;
   }
   // Trim the points hugging the outline first; keep the meaty interior.
   pts.sort((a, b) => edgeDist(b.x, b.y) - edgeDist(a.x, a.y));
