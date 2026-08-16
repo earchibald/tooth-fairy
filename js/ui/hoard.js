@@ -71,18 +71,51 @@ function paintSack(c, x, g, px, fill, colors) {
 }
 
 function paintJar(c, x, g, px, level, colors) {
-  const w2 = px * 0.42;
-  const h2 = px * 1.1;
+  const neck = px * 0.30;
+  const belly = px * 0.46;
+  const h2 = px * 1.05;
+  const mouthY = g - h2;
+  // Glass body: shoulders bow out from the mouth, the base tucks in — no
+  // straight-sided rectangle (it read as a battery).
   c.strokeStyle = colors.accent;
   c.lineWidth = 1.5;
-  c.strokeRect(x - w2, g - h2, w2 * 2, h2);
+  c.beginPath();
+  c.moveTo(x - neck, mouthY);
+  c.bezierCurveTo(x - belly, mouthY + px * 0.16, x - belly, g - px * 0.18,
+    x - belly * 0.8, g);
+  c.lineTo(x + belly * 0.8, g);
+  c.bezierCurveTo(x + belly, g - px * 0.18, x + belly, mouthY + px * 0.16,
+    x + neck, mouthY);
+  c.stroke();
+  // Screw lid: a flat cap OVERHANGING the mouth, a narrower band above it —
+  // wider than the neck so it can't read as a battery terminal.
   c.fillStyle = colors.accent;
-  c.fillRect(x - w2 * 0.7, g - h2 - px * 0.14, w2 * 1.4, px * 0.14);
-  const fh = (h2 - 3) * level;
-  if (fh > 0) {
+  c.fillRect(x - neck * 1.25, mouthY - px * 0.10, neck * 2.5, px * 0.10);
+  c.fillRect(x - neck * 0.9, mouthY - px * 0.16, neck * 1.8, px * 0.06);
+  // Contents: teeth as stacked pebbles up to the fill line, never a solid
+  // charge-bar slab.
+  if (level > 0) {
     c.fillStyle = colors.glow;
-    c.fillRect(x - w2 + 1.5, g - 1.5 - fh, w2 * 2 - 3, fh);
+    const top = g - (h2 - px * 0.18) * level;
+    const rowW = belly * 0.62;
+    for (let yy = g - px * 0.10; yy >= top; yy -= px * 0.13) {
+      for (let i = 0; i < 3; i++) {
+        const jx = x - rowW + rowW * i +
+          ((((i * 7 + Math.round(yy)) % 3) - 1) * px * 0.04);
+        c.beginPath();
+        c.arc(jx, yy, px * 0.055, 0, 7);
+        c.fill();
+      }
+    }
   }
+  // Glass shine on the upper-left shoulder.
+  c.strokeStyle = colors.glow;
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(x - belly * 0.62, mouthY + px * 0.30);
+  c.quadraticCurveTo(x - belly * 0.72, mouthY + px * 0.52,
+    x - belly * 0.66, g - px * 0.30);
+  c.stroke();
 }
 
 function paintChest(c, x, g, px, level, colors) {
@@ -176,30 +209,29 @@ function paintMoon(c, x, y, px, alpha, colors) {
   c.globalAlpha = alpha;
 }
 
-// Draws the whole hoard for `count` teeth. Quiet by default (vfx.hoard.alpha);
-// scenes anchor to a ground line just above the canvas bottom and keep the
-// tap button's center gap clear. The moons tier keeps a faint mountain ridge
-// under its risen moons.
-export function drawHoard(ctx2d, { w, h, count, vfx, colors }) {
+export function drawHoard(ctx2d, { w, h, count, vfx, colors, scale = 1, centerGapPx, alpha }) {
   const hv = vfx.hoard;
   const t = tierFor(count, hv.tiers);
   if (!t) return;
   const def = hv.tiers[t.index];
+  const px = def.px * scale;
+  const gap = centerGapPx ?? hv.centerGapPx;
+  const a = alpha ?? hv.alpha;
   const { shown, fill } = shapesFor(t.progress, def.units);
-  const xs = slotXs(w, hv.centerGapPx, def.units, def.px);
+  const xs = slotXs(w, gap, def.units, px);
   const g = h - 2;
   ctx2d.save();
-  ctx2d.globalAlpha = hv.alpha;
+  ctx2d.globalAlpha = a;
   if (t.id === 'moons') {
-    ctx2d.globalAlpha = hv.alpha * 0.5;
-    const ridge = slotXs(w, hv.centerGapPx, 5, 40);
-    for (const x of ridge) paintMountain(ctx2d, x, g, 40, 1, colors);
-    ctx2d.globalAlpha = hv.alpha;
+    ctx2d.globalAlpha = a * 0.5;
+    const ridge = slotXs(w, gap, 5, 40 * scale);
+    for (const x of ridge) paintMountain(ctx2d, x, g, 40 * scale, 1, colors);
+    ctx2d.globalAlpha = a;
     for (let i = 0; i < shown; i++) {
       const newest = i === shown - 1;
-      const skyY = moonSkyY(h, i, def.px);
+      const skyY = moonSkyY(h, i, px);
       const y = newest ? skyY + (g - skyY) * (1 - fill) : skyY;
-      paintMoon(ctx2d, xs[i], y, def.px, hv.alpha, colors);
+      paintMoon(ctx2d, xs[i], y, px, a, colors);
     }
     ctx2d.restore();
     return;
@@ -211,7 +243,7 @@ export function drawHoard(ctx2d, { w, h, count, vfx, colors }) {
   const paint = painters[t.id];
   for (let i = 0; i < shown; i++) {
     const level = i === shown - 1 ? fill : 1;
-    paint(ctx2d, xs[i], g, def.px, level, colors);
+    paint(ctx2d, xs[i], g, px, level, colors);
   }
   ctx2d.restore();
 }

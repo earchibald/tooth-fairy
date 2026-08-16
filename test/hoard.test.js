@@ -84,6 +84,7 @@ function stubCtx() {
     beginPath: rec('beginPath'), closePath: rec('closePath'),
     moveTo: rec('moveTo'), lineTo: rec('lineTo'), arc: rec('arc'),
     quadraticCurveTo: rec('quadraticCurveTo'),
+    bezierCurveTo: rec('bezierCurveTo'),
     fill: rec('fill'), stroke: rec('stroke'),
     fillRect: rec('fillRect'), strokeRect: rec('strokeRect'),
   };
@@ -142,4 +143,30 @@ test('glintPoint: null when empty, on-stash when not, deterministic rand', () =>
   assert.ok(p && p.x >= 0 && p.x <= 800 && p.y >= 0 && p.y <= 96);
   const p2 = glintPoint({ w: 800, h: 96, count: 5e2, vfx: VFX, rand: () => 0.5 });
   assert.deepEqual(p, p2);
+});
+
+test('drawHoard: alpha, scale, and centerGapPx overrides apply', () => {
+  const c = stubCtx();
+  const alphas = [];
+  Object.defineProperty(c, 'globalAlpha', {
+    get: () => alphas[alphas.length - 1] ?? 1,
+    set: (v) => alphas.push(v),
+  });
+  drawHoard(c, {
+    w: 800, h: 200, count: 500, vfx: VFX, colors: COLORS,
+    alpha: 0.9, scale: 2.4, centerGapPx: 0,
+  });
+  assert.ok(alphas.includes(0.9), 'override alpha never set');
+  assert.ok(c.calls.length > 0, 'nothing painted');
+});
+
+test('drawHoard: overrides also cover the moons tier', () => {
+  const c = stubCtx();
+  drawHoard(c, {
+    w: 800, h: 300, count: 1e19, vfx: VFX, colors: COLORS,
+    alpha: 0.3, scale: 2, centerGapPx: 0,
+  });
+  assert.ok(c.calls.length > 0);
+  assert.equal(c.calls.filter((n) => n === 'save').length,
+    c.calls.filter((n) => n === 'restore').length);
 });
