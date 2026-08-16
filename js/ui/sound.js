@@ -59,7 +59,11 @@ function blip({ type = 'sine', from = 440, to = 0, ms = 60, gain = 0.02, delay =
   osc.onended = () => { osc.disconnect(); g.disconnect(); };
 }
 
-const TAP_CLIP_URL = new URL('../../assets/microtick.wav', import.meta.url);
+// In the artifact build the wav rides along as base64 (CSP blocks fetch);
+// on the normal page it is fetched relative to this module as before.
+const TAP_CLIP_B64 = (typeof window !== 'undefined' && window.TF_TAP_CLIP_B64) || null;
+const TAP_CLIP_URL = TAP_CLIP_B64 ? null
+  : new URL('../../assets/microtick.wav', import.meta.url);
 const TAP_CLIP_RATE = 0.25;
 const clips = new Map();   // href -> AudioBuffer | 'pending' | 'failed'
 
@@ -69,11 +73,13 @@ const clips = new Map();   // href -> AudioBuffer | 'pending' | 'failed'
 function playClip(url, gain, rate) {
   const c = ensure();
   if (!c) return true;   // muted: swallow, no fallback either
-  const key = url.href;
+  const key = url ? url.href : 'embedded';
   if (!clips.has(key)) {
     clips.set(key, 'pending');
-    fetch(url)
-      .then((r) => r.arrayBuffer())
+    const bytes = TAP_CLIP_B64
+      ? Promise.resolve(Uint8Array.from(atob(TAP_CLIP_B64), (ch) => ch.charCodeAt(0)).buffer)
+      : fetch(url).then((r) => r.arrayBuffer());
+    bytes
       .then((b) => c.decodeAudioData(b))
       .then((buf) => clips.set(key, buf))
       .catch(() => clips.set(key, 'failed'));
