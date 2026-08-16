@@ -223,6 +223,11 @@ export function mountChat({ root, ctx, packs, dock }) {
       const startX = e.clientX;
       const startY = e.clientY;
       const rect = win.getBoundingClientRect();
+      // Grip must track the cursor, so resizing re-anchors top-left first.
+      win.style.left = rect.left + 'px';
+      win.style.top = rect.top + 'px';
+      win.style.right = 'auto';
+      win.style.bottom = 'auto';
       const move = (ev) => {
         win.style.width = Math.max(320, rect.width + (ev.clientX - startX)) + 'px';
         win.style.height = Math.min(window.innerHeight,
