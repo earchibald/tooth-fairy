@@ -137,7 +137,9 @@ export function build() {
   // ---- emit the artifact page ----
   const gameCss = readFileSync(join(ROOT, 'css/main.css'), 'utf8');
   const wavB64 = readFileSync(join(ROOT, 'assets/microtick.wav')).toString('base64');
-  const version = readFileSync(join(ROOT, 'js/version.js'), 'utf8').match(/['"](v[^'"]+)['"]/)?.[1] || '';
+  const versionMatch = readFileSync(join(ROOT, 'js/version.js'), 'utf8').match(/VERSION\s*=\s*['"]([^'"]+)['"]/);
+  const version = versionMatch ? 'v' + versionMatch[1] : '';
+  const versionSuffix = version ? ' ' + version : '';
 
   const shellCss = `
 /* ---- dev-suite shell: full-desktop, panel left, game right ---- */
@@ -154,14 +156,14 @@ html.tf-embed, html.tf-embed body { position: static; overflow: hidden;
 #tf-game #app { width: 480px; max-width: 480px; height: 100vh; margin: 0; }
 `;
 
-  const shell = `<title>tooth fairy · dev suite ${version}</title>
+  const shell = `<title>tooth fairy · dev suite${versionSuffix}</title>
 <style>
 ${gameCss}
 ${shellCss}
 </style>
 <div id="tf-shell">
   <div id="tf-dev">
-    <div class="tf-brand">tooth fairy · dev suite ${version} · [ ] cycle tabs · shift+1..8 jump · \` chat</div>
+    <div class="tf-brand">tooth fairy · dev suite${versionSuffix} · [ ] cycle tabs · shift+1..8 jump · \` chat</div>
   </div>
   <div id="tf-game"><div id="app" data-act="0"></div></div>
 </div>

@@ -28,6 +28,7 @@ test('build produces a working self-contained bundle', async () => {
   const html = readFileSync(ROOT + 'dist/dev-suite.html', 'utf8');
   assert.ok(!/<!doctype|<html|<head|<body/i.test(html));
   assert.ok(html.includes('<title>'));
+  assert.ok(html.includes('dev suite v'), 'version embedded in title/brand');
   assert.ok(html.includes('TF_EMBED'));
   assert.ok(html.includes('TF_TAP_CLIP_B64'));
   assert.ok(html.includes('TF_START()'));
