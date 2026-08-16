@@ -79,7 +79,7 @@ export const SCRIPT_DEFAULTS = Object.freeze({
       response: 'tiptoe it is', trigger: { type: 'afterBeat', id: 'a2-stir' },
       effects: { revealTiptoe: true } },
     { id: 'a2-hush', act: 2, register: 'ledger',
-      text: 'advisory 7-c. noise above hush accrues STIR. STIR at 100: a wake. a wake: belief −10, loudest crew lies low. tiptoe halves noise. the loom raises hush. the ministry thanks you for your silence.',
+      text: 'advisory 7-c, plain version. noise is how loud the crew works. hush is how much the night absorbs. when noise is higher than hush, the STIR meter climbs. at 100, a child wakes: belief −10, and your loudest crew hides for a while. TIPTOE halves noise for a bit. the loom raises hush. keep noise under hush and STIR falls on its own.',
       response: 'noted, ominously', trigger: { type: 'afterBeat', id: 'a2-tiptoe' } },
     { id: 'a2-night', act: 2, register: 'memory',
       text: "the night has edges now. i can feel the dawn coming like a tide. when it comes, we rest — the ledgers work while we sleep, if you've bought the right one.",

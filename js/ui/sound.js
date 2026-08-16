@@ -107,4 +107,9 @@ export const play = {
     blip({ type: 'sine', from: 95, to: 60, ms: 200, gain: vfx.sound.wake });
   },
   note() { blip({ type: 'triangle', from: 990, to: 720, ms: 90, gain: vfx.sound.note }); },
+  // Story-button acknowledgment: a quick two-blip page-turn tick.
+  press() {
+    blip({ type: 'triangle', from: 520, to: 660, ms: 45, gain: vfx.sound.press });
+    blip({ type: 'triangle', from: 740, to: 880, ms: 55, gain: vfx.sound.press, delay: 0.05 });
+  },
 };

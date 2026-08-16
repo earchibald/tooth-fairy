@@ -92,6 +92,7 @@ export const VFX_DEFAULTS = Object.freeze({
     // tap rides the recorded microtick clip (raw peak 1.24); through the 0.5
     // master this lands at the edge-of-noticeable level the clip shipped with.
     tap: 0.06, fill: 0.03, beat: 0.035, buy: 0.03, wake: 0.05, note: 0.03,
+    press: 0.04,
   }),
 });
 

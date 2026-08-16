@@ -727,7 +727,7 @@ function tabVfx(body, ctx) {
   const bar = el('div', 'devBar');
   const test = el('button', null, 'test sounds');
   test.addEventListener('click', () => {
-    const seq = ['tap', 'fill', 'buy', 'note', 'beat', 'wake'];
+    const seq = ['tap', 'fill', 'buy', 'note', 'beat', 'wake', 'press'];
     seq.forEach((k, i) => setTimeout(() => play[k](), i * 350));
   });
   bar.appendChild(test);

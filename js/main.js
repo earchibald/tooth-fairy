@@ -147,7 +147,7 @@ function drainSfx() {
       case 'fillset': play.fill(); break;
       case 'income': ui.conveyor.credit(ev.amount, now); break;
       case 'buy': play.buy(); ui.conveyor.buySweep(now); break;
-      case 'beatDismiss': play.beat(); save(); break;
+      case 'beatDismiss': play.press(); save(); break;
       case 'wake': {
         play.wake();
         const unitName = ev.unit ? names.units[ev.unit].name.toLowerCase() : '';
@@ -257,10 +257,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') ui.overlays.closeAll();
     return;
   }
-  const beatBtn = document.querySelector('.beatCard.show [data-testid="beat-response"]');
-  if (beatBtn && (e.key === ' ' || e.key === 'Enter')) {
+  // A story response requires a real click: while a beat card is up, SPACE
+  // and Enter are swallowed so they can neither dismiss it nor tap through.
+  if (document.querySelector('.beatCard.show') && (e.key === ' ' || e.key === 'Enter')) {
     e.preventDefault();
-    beatBtn.click();
     return;
   }
   switch (e.key) {
