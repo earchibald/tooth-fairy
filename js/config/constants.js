@@ -58,7 +58,7 @@ export const DEFAULTS = Object.freeze({
     moonclippers: Object.freeze({ cost: 3e6 }),
   }),
 
-  LOOM: Object.freeze({ base: 4000, growth: 2.0, hushPerLevel: 20, hushFalloff: 0.85 }),
+  LOOM: Object.freeze({ base: 4000, growth: 1.95, hushPerLevel: 20, hushFalloff: 0.85 }),
 
   STIR: Object.freeze({
     HUSH_BASE: 10,        // quiet capacity before the loom
@@ -71,8 +71,8 @@ export const DEFAULTS = Object.freeze({
     SETTLE_TICKS: 150,   // post-wake: the house pretends to sleep, stir frozen 30 s
     FIRST_WAKE_AT: 55,   // the scripted flashlight wake fires early, provably
     REVEAL_NOISE: 20,     // STIR meter appears when noise first reaches this
-    SCALE_NOISE_PER_LOG10: 6,  // the operation hums: noise per decade of teeth/s
-    SCALE_NOISE_FREE_LOG10: 3, // decades below this are free
+    SCALE_NOISE_PER_LOG10: 13,  // the operation hums: noise per decade of teeth/s
+    SCALE_NOISE_FREE_LOG10: 2.6, // decades below this are free
   }),
 
   BELIEF: Object.freeze({
