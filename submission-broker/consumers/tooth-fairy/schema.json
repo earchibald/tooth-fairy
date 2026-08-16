@@ -1,0 +1,10 @@
+{
+  "prefix": "tf-session",
+  "sessionIdPattern": "^\\d{13}-[a-z0-9]{4}$",
+  "keyTemplate": "submissions/{date}/{sessionId}/{filename}",
+  "files": [
+    { "suffix": ".jsonl", "contentTypes": ["text/plain", "application/x-ndjson"], "maxBytes": 26214400 },
+    { "suffix": "-v{n}.m4a", "contentTypes": ["audio/mp4"], "maxBytes": 209715200 },
+    { "suffix": "-v{n}.webm", "contentTypes": ["audio/webm"], "maxBytes": 209715200 }
+  ]
+}
