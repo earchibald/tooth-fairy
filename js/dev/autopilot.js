@@ -36,12 +36,12 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
   // The beat card waits a real-time settle gap (vfx.beats.settleMs) that
   // does not scale with ?speed=, and occluded windows render on a 400 ms
   // fallback — so the hidden-card direction gets one extra strike.
-  const STRIKES_TO_RECORD = { 'beat-visibility': 3 };
+  const strikesNeeded = (what) => what.startsWith('beat-visibility') ? 3 : 2;
   const strikes = new Map();
   function issue(state, what, detail) {
     const n = (strikes.get(what) || 0) + 1;
     strikes.set(what, n);
-    if (n >= (STRIKES_TO_RECORD[what] || 2) && domIssues.length < 50) {
+    if (n >= strikesNeeded(what) && domIssues.length < 50) {
       domIssues.push({ tick: state.tick, what, detail });
     }
   }
@@ -51,7 +51,10 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
     const record = (what, detail) => { failed.add(what); issue(state, what, detail); };
     const beatOpen = !!$('.beatCard.show');
     if (beatOpen !== state.beatQueue.length > 0) {
-      record('beat-visibility', 'card ' + beatOpen + ' queue ' + state.beatQueue.length);
+      // Keyed by queue head: chained beats each settle their own real-time
+      // pause — only the SAME beat staying hidden accumulates strikes.
+      record('beat-visibility:' + (state.beatQueue[0] || 'none'),
+        'card ' + beatOpen + ' queue ' + state.beatQueue.length);
     }
     const stirMeter = $('.meter.stir');
     if (stirMeter && stirMeter.hidden === !!state.stirShown) {
