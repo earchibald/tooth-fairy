@@ -20,6 +20,20 @@ function el(tag, cls, text) {
   return node;
 }
 
+// Embed hotkeys: pure mapping so it can be tested headless. Typing fields
+// and modifier chords (other than the Shift that makes a digit) never steal.
+export function devTabForKey(e, tabNames, active) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.targetTag)) return null;
+  if (e.ctrlKey || e.metaKey || e.altKey) return null;
+  const m = /^Digit([1-9])$/.exec(e.code || '');
+  if (e.shiftKey && m) return tabNames[Number(m[1]) - 1] || null;
+  if (e.shiftKey) return null;
+  const i = tabNames.indexOf(active);
+  if (e.key === ']') return tabNames[(i + 1) % tabNames.length];
+  if (e.key === '[') return tabNames[(i - 1 + tabNames.length) % tabNames.length];
+  return null;
+}
+
 const CSS = `
 .devChip { color: #cfa8ea; border-color: #cfa8ea44; }
 .devPanel { position: fixed; inset: 0; z-index: 40; background: #0b0e17f5;
@@ -104,6 +118,33 @@ export function mountDevPanel(ctx) {
   });
 }
 
+function buildSuite(ctx, { panel, head, body, docked }) {
+  const tabs = {
+    Workshop: tabWorkshop, Hoard: tabHoard, Script: tabScript, Balance: tabBalance,
+    Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
+  };
+  let active = null;
+  let onHide = null;
+  for (const name of Object.keys(tabs)) {
+    const btn = el('button', 'devTab', name);
+    btn.dataset.testid = 'dev-tab-' + name.toLowerCase();
+    btn.addEventListener('click', () => show(name));
+    head.appendChild(btn);
+  }
+  function stopHide() { if (onHide) { onHide(); onHide = null; } }
+  function show(name) {
+    stopHide();
+    active = name;
+    for (const btn of head.querySelectorAll('.devTab')) {
+      btn.classList.toggle('on', btn.textContent === name);
+    }
+    while (body.firstChild) body.removeChild(body.firstChild);
+    if (!docked) panel.classList.toggle('devPanel--drawer', name === 'Workshop' || name === 'Hoard');
+    onHide = tabs[name](body, ctx) || null;
+  }
+  return { tabs, show, stopHide, activeTab: () => active };
+}
+
 function buildPanel(ctx) {
   const panel = el('div', 'devPanel');
   panel.hidden = true;
@@ -113,46 +154,50 @@ function buildPanel(ctx) {
   panel.append(head, body);
   document.body.appendChild(panel);
 
-  const tabs = {
-    Workshop: tabWorkshop, Hoard: tabHoard, Script: tabScript, Balance: tabBalance,
-    Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
-  };
-  const built = {};
-  let active = null;
-  let onHide = null;
+  const suite = buildSuite(ctx, { panel, head, body, docked: false });
 
-  for (const name of Object.keys(tabs)) {
-    const btn = el('button', 'devTab', name);
-    btn.dataset.testid = 'dev-tab-' + name.toLowerCase();
-    btn.addEventListener('click', () => show(name));
-    head.appendChild(btn);
-  }
   const close = el('button', 'x', '✕');
-  close.addEventListener('click', () => { panel.hidden = true; stopHide(); });
+  close.addEventListener('click', () => { panel.hidden = true; suite.stopHide(); });
   head.appendChild(close);
 
-  function stopHide() { if (onHide) { onHide(); onHide = null; } }
-
-  function show(name) {
-    stopHide();
-    active = name;
-    for (const btn of head.querySelectorAll('.devTab')) {
-      btn.classList.toggle('on', btn.textContent === name);
-    }
-    while (body.firstChild) body.removeChild(body.firstChild);
-    panel.classList.toggle('devPanel--drawer', name === 'Workshop' || name === 'Hoard');
-    onHide = tabs[name](body, ctx) || null;
-  }
-
-  show('Workshop');
+  suite.show('Workshop');
   return {
     toggle() {
       panel.hidden = !panel.hidden;
-      if (!panel.hidden && active) show(active);
-      else stopHide();
+      if (!panel.hidden && suite.activeTab()) suite.show(suite.activeTab());
+      else suite.stopHide();
     },
   };
 }
+
+export function mountDevSuiteDocked(ctx, host) {
+  const style = document.createElement('style');
+  style.textContent = CSS + DOCK_CSS;
+  document.head.appendChild(style);
+  const panel = el('div', 'devPanel devPanel--docked');
+  panel.dataset.testid = 'dev-panel';
+  const head = el('div', 'devHead');
+  const body = el('div', 'devBody');
+  panel.append(head, body);
+  host.appendChild(panel);
+  const suite = buildSuite(ctx, { panel, head, body, docked: true });
+  const tabNames = Object.keys(suite.tabs);
+  document.addEventListener('keydown', (e) => {
+    const next = devTabForKey({
+      code: e.code, key: e.key, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey, altKey: e.altKey,
+      targetTag: e.target && e.target.tagName || '',
+    }, tabNames, suite.activeTab());
+    if (next) { e.preventDefault(); suite.show(next); }
+  });
+  suite.show('Workshop');
+  return { activeTab: suite.activeTab, show: suite.show, tabNames };
+}
+
+const DOCK_CSS = `
+.devPanel--docked { position: static; inset: auto; height: 100%; z-index: auto; }
+.devPanel--docked .devHead .x { display: none; }
+`;
 
 // ---------- shared: leaf-walking knob rows ----------
 

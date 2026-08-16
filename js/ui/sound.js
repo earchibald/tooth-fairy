@@ -5,7 +5,9 @@
 // License: Creative Commons 0. The raw burst sits above 10 kHz; played at
 // quarter speed it lands near 4 kHz and reads as a crisp, tiny tick.
 
-const urlMuted = new URLSearchParams(location.search).get('mute') === '1';
+function urlMuted() {
+  return new URLSearchParams(location.search).get('mute') === '1';
+}
 let ctx = null;
 let master = null;
 let vfx = null;
@@ -27,7 +29,7 @@ export function setMasterGain(v) {
 }
 
 function ensure() {
-  if (urlMuted || prefMuted) return null;
+  if (urlMuted() || prefMuted) return null;
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
