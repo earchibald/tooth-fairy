@@ -181,12 +181,13 @@ the trail is what lets an analyst find the real moment.
 
 | Infrastructure state | Result |
 |---|---|
-| No broker deployed (default) | Downloads a zip — `<sessionId>.zip` with the events jsonl and every voice recording — or the bare `<sessionId>.jsonl` when there is no audio |
-| Broker deployed | Uploads straight to S3 through a token-gated broker. No AWS keys touch the browser. |
+| Local checkout (stub `env.js`) | Downloads a zip — `<sessionId>.zip` with the events jsonl and every voice recording — or the bare `<sessionId>.jsonl` when there is no audio |
+| Deployed site (broker wired) | Uploads straight to S3 through a token-gated broker. No AWS keys touch the browser. |
 
 The broker is `submission-broker/`, a reusable Terraform module plus
-Lambda. It has deliberately not been applied: it creates a real S3 bucket
-and a public Function URL, which is the owner's call.
+Lambda, deployed as consumer `tooth-fairy`. The deploy workflow wires the
+site to it from repository configuration; the committed `js/submit/env.js`
+stays an inactive stub.
 
 ### Analyzing a session
 

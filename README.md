@@ -124,11 +124,12 @@ this gets used.
 
 ### The upload path
 
-The S3 path needs `submission-broker/` provisioned first — a small, reusable Terraform module
-plus Lambda that hands the browser a one-shot, token-gated upload grant. This has **deliberately
-not been run**: applying it creates a real S3 bucket and a publicly reachable Function URL,
-which is the owner's call, not something scripted for you. Until then, `submit session`
-downloads a zip, or the bare `.jsonl` when there is no audio.
+The S3 path runs through `submission-broker/` — a small, reusable Terraform module plus
+Lambda that hands the browser a one-shot, token-gated upload grant. It is **deployed**
+(consumer `tooth-fairy`, bucket `earchibald-tf-session-submissions`, us-east-1). The
+committed `js/submit/env.js` stays an inactive stub; the Pages deploy workflow overwrites
+it from `vars.SUBMIT_BROKER_URL` + `secrets.SUBMIT_TOKEN`, so the deployed site uploads
+while a local checkout still downloads a zip (or the bare `.jsonl` when there is no audio).
 
 To analyze a submitted session, see `.claude/skills/analyze-playtest/SKILL.md`, or run its
 three scripts directly: `scripts/submissions.mjs` (list/pull/rm from S3), `scripts/transcribe.mjs`

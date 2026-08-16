@@ -35,6 +35,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # Overwrite the committed inactive stub with real values when the
+      # repo has them configured (vars.SUBMIT_BROKER_URL + secrets.SUBMIT_TOKEN).
+      # The token lands in public page source by design — it is a soft gate
+      # enforced by the broker Lambda, not a credential.
+      - name: Wire submission broker
+        if: vars.SUBMIT_BROKER_URL != ''
+        env:
+          BROKER_URL: ${{ vars.SUBMIT_BROKER_URL }}
+          SUBMIT_TOKEN: ${{ secrets.SUBMIT_TOKEN }}
+        run: |
+          printf '%s\n' \
+            "// Generated at deploy time from repository configuration." \
+            "export const SUBMIT_ENV = { enabled: true, brokerUrl: '$BROKER_URL', token: '$SUBMIT_TOKEN' };" \
+            > js/submit/env.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
