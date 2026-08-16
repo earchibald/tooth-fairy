@@ -7,7 +7,7 @@ import { createObserver } from './observer.js';
 import { fmt } from '../engine/math.js';
 
 const POLL_MS = 100;
-const TAPS_PER_POLL = 4; // 40 clicks/s — deliberately over the engine cap
+const TAPS_PER_POLL = 4; // 40 pointerdown events/s — deliberately over the engine cap
 
 export function startAutopilot({ maxMinutes = 10 } = {}) {
   const game = window.game;
@@ -99,7 +99,12 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
     }
     if (state.nightShown && state.contractPicked === null) click($('[data-testid^="job-"]'));
 
-    for (let i = 0; i < TAPS_PER_POLL; i++) click($('[data-testid="tap"]'));
+    const tapBtn = $('[data-testid="tap"]');
+    if (tapBtn) {
+      for (let i = 0; i < TAPS_PER_POLL; i++) {
+        tapBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      }
+    }
     if (state.stir > 75) click($('[data-testid="tiptoe"]'));
     if (state.notes > 0) click($('[data-testid="log-read-note"]'));
     for (const b of document.querySelectorAll('[data-testid="roost"] button')) click(b);
