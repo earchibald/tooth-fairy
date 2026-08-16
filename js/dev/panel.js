@@ -485,6 +485,8 @@ const HOARD_SHARED_KNOBS = [
   { path: ['hoard', 'alpha'], min: 0, max: 1, step: 0.01 },
   { path: ['hoard', 'glintPerS'], min: 0, max: 10, step: 0.1 },
   { path: ['hoard', 'centerGapPx'], min: 40, max: 160, step: 2 },
+  { path: ['hoard', 'stageScale'], min: 0.5, max: 5, step: 0.1 },
+  { path: ['hoard', 'stageAlpha'], min: 0, max: 1, step: 0.01 },
 ];
 
 // fmt()'s largest unit is q (1e15), so counts at or beyond 1e18 would render
@@ -505,9 +507,10 @@ function tabHoard(body, ctx) {
   const detail = el('div');
   body.append(strip, detail);
 
-  const redraw = () => ctx.ui.conveyor.redraw();
+  const redraw = () => { ctx.ui.conveyor.redraw(); ctx.ui.stage.redrawHoard(); };
   const preview = (count) => {
     ctx.ui.conveyor.setHoardPreview(count);
+    ctx.ui.stage.setHoardPreview(count);
   };
 
   function tierBounds(i) {

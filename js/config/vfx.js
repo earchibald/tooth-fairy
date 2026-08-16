@@ -45,6 +45,8 @@ export const VFX_DEFAULTS = Object.freeze({
     alpha: 0.5,             // whole-hoard opacity
     glintPerS: 0.8,         // sparkle rate across the stash while animating
     centerGapPx: 72,        // clear zone around the tap button
+    stageScale: 2.4,        // px multiplier for the stage backdrop scene
+    stageAlpha: 0.33,       // backdrop opacity on the tonight stage
     tiers: Object.freeze([  // min = tooth count where the tier begins
       Object.freeze({ id: 'sack',       min: 1,    units: 1,  px: 34 }),
       Object.freeze({ id: 'jars',       min: 1e2,  units: 7,  px: 22 }),

@@ -4,9 +4,50 @@ import { toothSVG } from './tooth.js';
 import { mulberry32 } from '../engine/rng.js';
 import { fmt, starsAtLifetime, figureDone } from '../engine/math.js';
 import { attachTip } from './tooltip.js';
+import { drawHoard, hoardSig } from './hoard.js';
 
 export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, onDepart }) {
   el.classList.add('stage');
+
+  // The hoard, big, on the main display: a static backdrop scene of the
+  // current tier. Redraws only on a signature change — no animation loop.
+  const hoardCanvas = document.createElement('canvas');
+  hoardCanvas.className = 'stageHoard';
+  el.appendChild(hoardCanvas);
+  let hoardTeeth = 0;
+  let hoardPreviewCount = null;
+  let hoardEnded = false;
+  let hoardAct = 0;
+  let hoardSigLast = null;
+  const hoardRo = new ResizeObserver(() => { hoardSigLast = null; drawStageHoard(); });
+  hoardRo.observe(hoardCanvas);
+  function drawStageHoard() {
+    const w = hoardCanvas.clientWidth;
+    const h = hoardCanvas.clientHeight;
+    if (!w || !h) return;
+    const count = hoardPreviewCount ?? hoardTeeth;
+    const sig = hoardEnded ? 'ended' :
+      hoardSig(count, vfx.hoard.tiers) + ':' + count + ':' + hoardAct + ':' +
+      w + 'x' + h + ':' + vfx.hoard.stageScale + ':' + vfx.hoard.stageAlpha;
+    if (sig === hoardSigLast) return;
+    hoardSigLast = sig;
+    const dpr = window.devicePixelRatio || 1;
+    hoardCanvas.width = Math.round(w * dpr);
+    hoardCanvas.height = Math.round(h * dpr);
+    const c = hoardCanvas.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    if (hoardEnded) return; // the ending sky owns the stage
+    const css = getComputedStyle(el.closest('#app') || document.documentElement);
+    const colors = {
+      accent: css.getPropertyValue('--accent').trim() || '#7b96c9',
+      glow: css.getPropertyValue('--glow').trim() || '#a8c0ea',
+    };
+    drawHoard(c, {
+      w, h, count, vfx, colors,
+      scale: vfx.hoard.stageScale, centerGapPx: 0, alpha: vfx.hoard.stageAlpha,
+    });
+  }
 
   const asideLayer = document.createElement('div');
   asideLayer.className = 'asideLayer';
@@ -97,8 +138,33 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     const sig = size + ':' + filled;
     if (sig === outlineSig) return;
     outlineSig = sig;
+    // From 32 slots the rows are wallpaper: collapse to one big tooth that
+    // fills bottom-up, with a filled/size count.
+    if (size >= 32) {
+      outlineRow.className = 'outlineRow compact';
+      if (outlineRow.dataset.mode !== 'compact') {
+        outlineRow.dataset.mode = 'compact';
+        while (outlineRow.firstChild) outlineRow.removeChild(outlineRow.lastChild);
+        const wrap = document.createElement('div');
+        wrap.className = 'outlineBig';
+        wrap.append(toothSVG('tooth-outline pulse'), toothSVG('tooth-fill outlineFillClip'));
+        const label = document.createElement('div');
+        label.className = 'outlineCount';
+        outlineRow.append(wrap, label);
+      }
+      const wrap = outlineRow.firstChild;
+      wrap.firstChild.style.setProperty('--pulseMs', vfx.pulse.outlineMs + 'ms');
+      wrap.lastChild.style.clipPath =
+        'inset(' + ((1 - filled / size) * 100).toFixed(1) + '% 0 0 0)';
+      outlineRow.lastChild.textContent = filled + '/' + size;
+      return;
+    }
+    if (outlineRow.dataset.mode === 'compact') {
+      outlineRow.dataset.mode = '';
+      while (outlineRow.firstChild) outlineRow.removeChild(outlineRow.lastChild);
+    }
     outlineRow.className = 'outlineRow' +
-      (size >= 64 ? ' sz64' : size >= 32 ? ' sz32' : size >= 16 ? ' sz16' : size >= 8 ? ' sz8' : '');
+      (size >= 16 ? ' sz16' : size >= 8 ? ' sz8' : '');
     while (outlineRow.children.length > size) outlineRow.removeChild(outlineRow.lastChild);
     while (outlineRow.children.length < size) outlineRow.appendChild(toothSVG());
     for (let i = 0; i < size; i++) {
@@ -214,6 +280,10 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
       updateOutline(state);
       updateSky(state);
       updateDepart(state);
+      hoardTeeth = Math.floor(state.teeth);
+      hoardEnded = !!state.ended;
+      hoardAct = state.act;
+      drawStageHoard();
     },
 
     aside(text, cls) {
@@ -242,5 +312,8 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     },
 
     hasBeatOpen: () => !!shownBeat || !!beatTimer,
+
+    redrawHoard() { hoardSigLast = null; drawStageHoard(); },
+    setHoardPreview(countOrNull) { hoardPreviewCount = countOrNull; drawStageHoard(); },
   };
 }

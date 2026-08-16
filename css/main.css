@@ -71,6 +71,9 @@ body {
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
+.stageHoard { position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+  width: 100%; pointer-events: none; z-index: 0; }
+.beatCard, .outlineRow { position: relative; z-index: 1; }
 .stageArt { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
   justify-content: center; max-width: 70%; }
 .stageArt svg { width: 64px; height: 64px; }
@@ -85,6 +88,13 @@ body {
 .outlineRow.sz16 svg { width: 24px; height: 24px; }
 .outlineRow.sz32 svg { width: 18px; height: 18px; }
 .outlineRow.sz64 svg { width: 14px; height: 14px; }
+.outlineRow.compact { flex-direction: column; gap: 2px; }
+.outlineBig { position: relative; width: 76px; height: 76px; }
+.outlineBig svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.outlineFillClip path { transition: clip-path 0.3s; }
+.outlineFillClip { transition: clip-path 0.3s; }
+.outlineCount { font-size: 12px; color: var(--dim); text-align: center;
+  font-variant-numeric: tabular-nums; }
 .tooth-outline path { fill: none; stroke: var(--glow); stroke-width: 4; opacity: 0.5; }
 .tooth-outline.pulse path { animation: toothpulse var(--pulseMs, 1600ms) ease-in-out infinite; }
 .tooth-fill path { fill: var(--glow); stroke: none; }
