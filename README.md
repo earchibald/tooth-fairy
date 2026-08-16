@@ -2,7 +2,7 @@
 
 An incremental clicker about teeth, belief, and who moves the pillow.
 
-**Play:** https://earchibald.github.io/tooth-fairy/
+**Play:** https://earchibald.github.io/tooth-fairy/ · **Manual:** [docs/MANUAL.md](docs/MANUAL.md)
 
 You are something that wants teeth and does not know why. Tap the tooth.
 The memory comes back in fragments while the numbers go up.
