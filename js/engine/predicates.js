@@ -127,14 +127,29 @@ export function noiseLevel(state, cfg) {
     if (state.stunUnit === u && state.stunTicks > 0) continue;
     noise += def.noise * state.units[u];
   }
+  // The operation's sheer size hums even when every unit is silent —
+  // hush can be outgrown but never outrun.
+  const rate = baseRatePerSec(state, cfg);
+  if (rate > 0) {
+    noise += cfg.STIR.SCALE_NOISE_PER_LOG10 *
+      Math.max(0, Math.log10(rate) - cfg.STIR.SCALE_NOISE_FREE_LOG10);
+  }
   noise *= Math.pow(cfg.UNITS.pact.stirFactor, state.units.pact);
   noise *= tiptoeFactor(state, cfg);
   if (figureDone(state, cfg, 'quietloom')) noise *= cfg.CONSTELLATIONS.quietloom.noiseFactor;
   return noise;
 }
 
+// Level 1 pays hushPerLevel; each further level hushFalloff of the previous.
+// Geometric sum, closed form; asymptote hushPerLevel / (1 - hushFalloff).
+export function loomHush(state, cfg) {
+  const f = cfg.LOOM.hushFalloff;
+  if (f === 1) return state.loom * cfg.LOOM.hushPerLevel;
+  return cfg.LOOM.hushPerLevel * (1 - Math.pow(f, state.loom)) / (1 - f);
+}
+
 export function hushCapacity(state, cfg) {
-  return cfg.STIR.HUSH_BASE + state.loom * cfg.LOOM.hushPerLevel +
+  return cfg.STIR.HUSH_BASE + loomHush(state, cfg) +
     (state.sky && state.sky.lullabythread ? cfg.SKY.lullabythread.hush : 0);
 }
 
