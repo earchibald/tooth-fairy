@@ -15,6 +15,7 @@ import { initSound, play } from './ui/sound.js';
 const params = new URLSearchParams(location.search);
 const SPEED = Math.max(0.1, Math.min(1000, Number(params.get('speed')) || 1));
 const AUTOPILOT = params.get('autopilot') === '1';
+const PLAYTEST = params.get('playtest') === '1';
 const DEV = params.get('dev') === '1' || AUTOPILOT ||
   ['localhost', '127.0.0.1'].includes(location.hostname);
 
@@ -304,6 +305,15 @@ if (DEV) {
   import('./dev/panel.js')
     .then((m) => m.mountDevPanel({ app, box, cfg, names, vfx, script, dispatch, ui, save }))
     .catch((err) => console.warn('[dev] panel failed to load', err));
+}
+
+// ---- playtest panel gate ----
+// Not an overlay: the tick loop above only halts on ui.overlays.anyOpen(),
+// and a tester must be able to talk (or type) while the game keeps running.
+if (PLAYTEST) {
+  import('./playtest/panel.js')
+    .then((m) => m.mountPlaytestPanel({ app, box, cfg, names, save, getState: () => box.state }))
+    .catch((err) => console.warn('[playtest] panel failed to load', err));
 }
 
 // ---- autopilot gate ----
