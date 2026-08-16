@@ -6,7 +6,7 @@
 import { createObserver } from './observer.js';
 import { fmt } from '../engine/math.js';
 
-const POLL_MS = 100;
+const POLL_MS = 50; // At high ?speed= the poll interval IS the player's reaction time in game-seconds, so it must stay small.
 const TAPS_PER_POLL = 4; // 40 pointerdown events/s — deliberately over the engine cap
 
 export function startAutopilot({ maxMinutes = 10 } = {}) {
@@ -105,7 +105,7 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
         tapBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       }
     }
-    if (state.stir > 75) click($('[data-testid="tiptoe"]'));
+    if (state.stir > 45) click($('[data-testid="tiptoe"]')); // Threshold sits far below the wake point because the autopilot senses stir with up to a poll of lag.
     if (state.notes > 0) click($('[data-testid="log-read-note"]'));
     for (const b of document.querySelectorAll('[data-testid="roost"] button')) click(b);
 
