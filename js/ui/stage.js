@@ -5,6 +5,7 @@ import { mulberry32 } from '../engine/rng.js';
 import { fmt, starsAtLifetime, figureDone } from '../engine/math.js';
 import { attachTip } from './tooltip.js';
 import { drawHoard, hoardSig } from './hoard.js';
+import { mosaicPoints } from './mosaic.js';
 
 export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, onDepart }) {
   el.classList.add('stage');
@@ -99,6 +100,7 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
   let shownBeat = null;
   let beatTimer = null;
   let outlineSig = '';
+  let mosaicFilled = 0;
   let whisperIdx = -1;
   let skySig = '';
 
@@ -138,28 +140,43 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     const sig = size + ':' + filled;
     if (sig === outlineSig) return;
     outlineSig = sig;
-    // From 32 slots the rows are wallpaper: collapse to one big tooth that
-    // fills bottom-up, with a filled/size count.
+    // From 32 slots the rows are wallpaper: render the set as a mosaic —
+    // the slots arranged inside one big tooth silhouette, filling bottom-up.
     if (size >= 32) {
       outlineRow.className = 'outlineRow compact';
-      if (outlineRow.dataset.mode !== 'compact') {
-        outlineRow.dataset.mode = 'compact';
+      const modeKey = 'mosaic:' + size;
+      if (outlineRow.dataset.mode !== modeKey) {
+        outlineRow.dataset.mode = modeKey;
         while (outlineRow.firstChild) outlineRow.removeChild(outlineRow.lastChild);
-        const wrap = document.createElement('div');
-        wrap.className = 'outlineBig';
-        wrap.append(toothSVG('tooth-outline pulse'), toothSVG('tooth-fill outlineFillClip'));
+        const grid = document.createElement('div');
+        grid.className = 'outlineMosaic sz' + size;
+        for (const p of mosaicPoints(size)) {
+          const svg = toothSVG('tooth-outline mosaicCell');
+          svg.style.left = p.x + '%';
+          svg.style.top = p.y + '%';
+          grid.appendChild(svg);
+        }
         const label = document.createElement('div');
         label.className = 'outlineCount';
-        outlineRow.append(wrap, label);
+        outlineRow.append(grid, label);
+        mosaicFilled = -1;   // fresh grid: light the current fill silently
       }
-      const wrap = outlineRow.firstChild;
-      wrap.firstChild.style.setProperty('--pulseMs', vfx.pulse.outlineMs + 'ms');
-      wrap.lastChild.style.clipPath =
-        'inset(' + ((1 - filled / size) * 100).toFixed(1) + '% 0 0 0)';
+      const cells = outlineRow.firstChild.children;
+      // Rising fills pop their new cells; a rebuild (boot, town change) or a
+      // reset (set complete) relights silently.
+      const rising = mosaicFilled >= 0 && filled > mosaicFilled;
+      for (let i = 0; i < cells.length; i++) {
+        const on = i < filled;
+        if (on === (i < mosaicFilled)) continue;
+        cells[i].setAttribute('class', on
+          ? 'tooth-fill mosaicCell on' + (rising ? ' pop' : '')
+          : 'tooth-outline mosaicCell');
+      }
+      mosaicFilled = filled;
       outlineRow.lastChild.textContent = filled + '/' + size;
       return;
     }
-    if (outlineRow.dataset.mode === 'compact') {
+    if (outlineRow.dataset.mode) {
       outlineRow.dataset.mode = '';
       while (outlineRow.firstChild) outlineRow.removeChild(outlineRow.lastChild);
     }

@@ -89,9 +89,18 @@ body {
 .outlineRow.sz32 svg { width: 18px; height: 18px; }
 .outlineRow.sz64 svg { width: 14px; height: 14px; }
 .outlineRow.compact { flex-direction: column; gap: 2px; }
-.outlineBig { position: relative; width: 76px; height: 76px; }
-.outlineBig svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.outlineFillClip { transition: clip-path 0.3s; }
+.outlineMosaic { position: relative; width: 128px; height: 128px; }
+.outlineMosaic svg.mosaicCell {
+  position: absolute; width: 15px; height: 15px;
+  transform: translate(-50%, -50%);
+}
+.outlineMosaic.sz64 svg.mosaicCell { width: 11px; height: 11px; }
+.outlineMosaic .tooth-outline path { opacity: 0.25; }
+.mosaicCell.pop { animation: mosaicPop 260ms ease-out; }
+@keyframes mosaicPop {
+  0% { transform: translate(-50%, -50%) scale(1.7); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
 .outlineCount { font-size: 12px; color: var(--dim); text-align: center;
   font-variant-numeric: tabular-nums; }
 .tooth-outline path { fill: none; stroke: var(--glow); stroke-width: 4; opacity: 0.5; }
