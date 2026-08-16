@@ -72,9 +72,11 @@ Eugene's) verification instrument.
     dawn button
 - Observe, each frame:
   - engine invariants via `createObserver` on `window.game.state`
-  - DOM consistency (checked ~1/s of game time): teeth counter text equals
-    `fmt(state.teeth)`; beat card visible iff `beatQueue.length > 0`;
-    STIR meter visible iff `stirShown`; active tab panel not hidden
+  - DOM consistency (checked ~1/s, a mismatch must survive two consecutive
+    checks — one render frame of lag is not a defect): beat card visible iff
+    `beatQueue.length > 0`; STIR meter visible iff `stirShown`; teeth counter
+    text equals `fmt(state.teeth)` (compared only while the engine is paused
+    on an open beat, where the DOM has settled)
   - console errors (hooked via `window.addEventListener('error')` and a
     `console.error` wrap) — any error is a failure
 - Stop when `state.postEnd` or after a configurable real-time budget
