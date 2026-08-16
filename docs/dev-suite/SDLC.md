@@ -27,7 +27,7 @@ Two mechanisms enforce it:
 | 5. Verify locally | open `dist/dev-suite-local.html` |
 | 6. Republish | ask Claude Code to republish `dist/dev-suite.html` to the existing artifact (same URL, favicon 🦷, capabilities `{downloads: true}`) |
 
-Artifact URL: (recorded at first publish)
+Artifact URL: https://claude.ai/code/artifact/89792fbc-55b7-47e9-8638-1b8323d072fe
 
 ## Adding a dev tab
 
