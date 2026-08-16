@@ -3,7 +3,7 @@
 // beyond formatting what the engine already decided.
 
 import { fmt, figureDone } from '../engine/math.js';
-import { effectiveRatePerSec, noiseLevel, hushCapacity } from '../engine/predicates.js';
+import { effectiveRatePerSec, noiseLevel, hushCapacity, unitRateShares } from '../engine/predicates.js';
 import { toothSVG } from './tooth.js';
 import { createStage } from './stage.js';
 import { createRoost } from './roost.js';
@@ -216,6 +216,7 @@ export function buildUI(app, ctx) {
     set('countShow', state.counterShown, (v) => count.classList.toggle('show', v));
     const rps = effectiveRatePerSec(state, cfg);
     conveyor.setRate(rps);
+    conveyor.setShares(unitRateShares(state, cfg));
     conveyor.setTeeth(Math.floor(state.teeth));
     set('rate', rps > 0 ? '≈ ' + fmt(rps) + names.meters.perSec : '', (v) => {
       rate.textContent = v;

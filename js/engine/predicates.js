@@ -41,6 +41,41 @@ export function baseRatePerSec(state, cfg) {
   return rate;
 }
 
+// Inflow families for the conveyor's motion archetypes. Read-only
+// derivation for the renderer — never used by the tick.
+const RATE_FAMILIES = Object.freeze({
+  flyers: ['scout', 'owl'],
+  grounders: ['mouse', 'bunny', 'phantom'],
+  mayflies: ['sprite'],
+  river: ['ferry', 'barge'],
+  paper: ['pact', 'ministry', 'starwrights'],
+});
+
+// Each family's share of current production, normalized to sum 1 when any
+// production exists; all zeros when idle. Ferry counts its lump cadence as
+// a rate so river traffic shows even when lumps are the only income.
+export function unitRateShares(state, cfg) {
+  const out = { flyers: 0, grounders: 0, mayflies: 0, river: 0, paper: 0 };
+  let total = 0;
+  for (const fam of Object.keys(RATE_FAMILIES)) {
+    for (const u of RATE_FAMILIES[fam]) {
+      const def = cfg.UNITS[u];
+      if (state.stunUnit === u && state.stunTicks > 0) continue;
+      let r = 0;
+      if (def.rate) {
+        r = def.rate * state.units[u] * multFactor(state, u, cfg);
+      } else if (u === 'ferry' && def.lumpEveryTicks > 0) {
+        r = (def.lumpAmount * state.units[u] * multFactor(state, u, cfg)) /
+            (def.lumpEveryTicks * (cfg.TICK_MS / 1000));
+      }
+      out[fam] += r;
+      total += r;
+    }
+  }
+  if (total > 0) for (const k of Object.keys(out)) out[k] /= total;
+  return out;
+}
+
 // The number the rate readout shows: everything applied.
 export function effectiveRatePerSec(state, cfg) {
   if (state.nightShown && state.nightPhase === 'dawn') return 0;

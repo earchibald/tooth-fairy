@@ -22,6 +22,26 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
   let rate = 0;
   let teeth = 0;
   let hoardPreview = null;
+  // Live production mix by family; which archetype the next sprite flies.
+  let shares = null;
+  const STYLE_KEYS = ['flyers', 'grounders', 'mayflies', 'river', 'paper'];
+  const STYLES = {
+    flyers:    { speed: 1,    size: 1,    trail: 1 },
+    grounders: { speed: 1,    size: 1,    trail: 1 },
+    mayflies:  { speed: 1.4,  size: 0.85, trail: 2 },
+    river:     { speed: 0.7,  size: 1.5,  trail: 1 },
+    paper:     { speed: 0.85, size: 1,    trail: 1 },
+  };
+  function pickStyle() {
+    if (!shares) return 'flyers';
+    const r = Math.random();
+    let acc = 0;
+    for (const k of STYLE_KEYS) {
+      acc += shares[k];
+      if (r < acc) return k;
+    }
+    return 'flyers';
+  }
   const hoardCount = () => hoardPreview ?? teeth;
   let lastHoardSig = hoardSig(hoardCount(), vfx.hoard.tiers);
   // When parked, only redraw the static frame (incl. getComputedStyle) if
@@ -76,6 +96,36 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     ctx2d.restore();
   }
 
+  // Per-archetype trajectory. t is raw travel progress 0..1; returns {x, y}.
+  function spritePos(s, t) {
+    const size = vfx.motif.toothPx;
+    const y0 = h / 2;
+    const ease = 1 - Math.pow(1 - t, 2.2);
+    const startX = s.fromLeft ? -size : w + size;
+    const x = startX + (w / 2 - startX) * ease;
+    switch (s.style) {
+      case 'grounders': {
+        // Rides the ground line with four small hops.
+        const hop = Math.abs(Math.sin(t * Math.PI * 4)) * 6;
+        return { x, y: y0 + size * 0.35 - hop };
+      }
+      case 'mayflies':
+        return { x, y: y0 - Math.sin(t * Math.PI * 6) * 5 };
+      case 'river':
+        return { x, y: y0 };
+      case 'paper': {
+        // Drifts down from above, swaying like a slip of paper.
+        const drop = (1 - t) * h * 0.4;
+        return { x, y: y0 - drop + Math.sin(t * Math.PI * 5) * 10 * (1 - t) };
+      }
+      default: {
+        // Flyers arc in high and settle to the line with a fading bob.
+        const high = (1 - ease) * h * 0.35;
+        return { x, y: y0 - high - Math.sin(t * Math.PI * 2) * 4 * (1 - t) };
+      }
+    }
+  }
+
   function ramp(maxKey) {
     const r = vfx.juice.ramp;
     return rampFactor(rate, r.rateLo, r.rateHi, r[maxKey]);
@@ -116,7 +166,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
     const size = vfx.motif.toothPx;
     for (let i = sprites.length - 1; i >= 0; i--) {
       const s = sprites[i];
-      const t = (now - s.born) / vfx.motif.inboundMs;
+      const st = STYLES[s.style] || STYLES.flyers;
+      const t = ((now - s.born) / vfx.motif.inboundMs) * st.speed;
       if (t >= 1) {
         sprites.splice(i, 1);
         parts.spawnSparks(w / 2, y, now, {
@@ -127,20 +178,20 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
         if (onLand) onLand(s.amount);
         continue;
       }
-      const ease = 1 - Math.pow(1 - t, 2.2);
-      const startX = s.fromLeft ? -size : w + size;
-      const x = startX + (w / 2 - startX) * ease;
+      const pos = spritePos(s, t);
       const gAlpha = Math.min(1, vfx.juice.inbound.glowAlpha * ramp('glowHi'));
-      const gy = y - Math.sin(t * Math.PI) * 7;
-      const gSize = size * ramp('sizeHi');
-      // Glow ghost (shadow-only, alpha scales with glowAlpha) drawn under the
-      // crisp tooth in one transform setup — see drawInboundSprite.
-      drawInboundSprite(x, gy, gSize, vfx.motif.inboundColor,
+      const gSize = size * ramp('sizeHi') * st.size;
+      drawInboundSprite(pos.x, pos.y, gSize, vfx.motif.inboundColor,
         gAlpha, vfx.juice.inbound.glowSize * ramp('glowHi'), 0.5 + t * 0.5);
+      // River wake: one low ripple at mid-crossing.
+      if (s.style === 'river' && !s.rippled && t >= 0.5) {
+        s.rippled = true;
+        parts.spawnRipple(pos.x, pos.y + 4, now, { ms: 600, size: 18 });
+      }
       // Sparkle trail: spawn probabilistically per frame so trailPerS holds.
-      const perFrame = (vfx.juice.inbound.trailPerS * ramp('trailHi')) / 60;
+      const perFrame = (vfx.juice.inbound.trailPerS * ramp('trailHi') * st.trail) / 60;
       if (Math.random() < perFrame) {
-        parts.spawnSparks(x, y - Math.sin(t * Math.PI) * 7, now,
+        parts.spawnSparks(pos.x, pos.y, now,
           { count: 1, size: 1.4, spreadPx: 8, lifeMs: vfx.juice.inbound.trailLife });
       }
     }
@@ -179,7 +230,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const realSpriteCount = sprites.filter(s => !s.preview).length;
       const batch = batcher.credit(amount, realSpriteCount < vfx.motif.inboundMax);
       if (batch != null) {
-        sprites.push({ born: now, fromLeft: (side = !side), amount: batch });
+        sprites.push({ born: now, fromLeft: (side = !side), amount: batch, style: pickStyle() });
       }
       wake();
     },
@@ -192,7 +243,7 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       const previewSpriteCount = sprites.filter(s => s.preview).length;
       const batch = previewBatcher.credit(amount, previewSpriteCount < vfx.motif.inboundMax);
       if (batch != null) {
-        sprites.push({ born: now, fromLeft: (side = !side), amount: batch, preview: true });
+        sprites.push({ born: now, fromLeft: (side = !side), amount: batch, preview: true, style: pickStyle() });
       }
       wake();
     },
@@ -208,6 +259,8 @@ export function createConveyor(canvas, vfx, ticksPerBatch, onLand) {
       wake();
     },
     setRate(rps) { rate = rps; },
+    // Live production mix; which archetype the next launch flies.
+    setShares(s) { shares = s; },
     // The hoard reads live teeth unless a Workshop preview overrides them.
     setTeeth(count) {
       if (count === teeth) return;
