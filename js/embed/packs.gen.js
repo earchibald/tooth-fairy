@@ -3064,6 +3064,240 @@ export const PACKS = {
    "tab": "Names",
    "ovKey": "names",
    "path": [
+    "playtest",
+    "title"
+   ],
+   "def": "playtest feedback"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "session"
+   ],
+   "def": "session "
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "entries"
+   ],
+   "def": " entries"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "submit"
+   ],
+   "def": "submit session"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "voiceHeading"
+   ],
+   "def": "voice"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "textHeading"
+   ],
+   "def": "text"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "record"
+   ],
+   "def": "● record"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "stopSubmit"
+   ],
+   "def": "■ stop & submit"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "cancel"
+   ],
+   "def": "cancel"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "noMic"
+   ],
+   "def": "voice recording is not supported in this browser."
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "textPlaceholder"
+   ],
+   "def": "type feedback…"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "textSubmit"
+   ],
+   "def": "submit"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "queueEmpty"
+   ],
+   "def": "nothing queued yet."
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "delete"
+   ],
+   "def": "delete"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "deleteConfirm"
+   ],
+   "def": "delete?"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "deleteYes"
+   ],
+   "def": "yes"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "deleteNo"
+   ],
+   "def": "no"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "newSession"
+   ],
+   "def": "new session"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "newSessionConfirm"
+   ],
+   "def": "end session and start a new one?"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "newSessionYes"
+   ],
+   "def": "yes"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "newSessionNo"
+   ],
+   "def": "no"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "edited"
+   ],
+   "def": "edited"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "statusSubmitting"
+   ],
+   "def": "submitting…"
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "statusDone"
+   ],
+   "def": "submitted."
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "statusError"
+   ],
+   "def": "submit failed: "
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
+    "playtest",
+    "narrowNote"
+   ],
+   "def": "this panel is built for a desktop-width window."
+  },
+  {
+   "tab": "Names",
+   "ovKey": "names",
+   "path": [
     "tips",
     "belief"
    ],
