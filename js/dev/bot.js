@@ -1,15 +1,15 @@
 // A competent, deliberately not-optimal player. Shared by playthrough,
 // pacing, and reachability tests so they all measure the same kind of player.
-// Policy: hoard toward the best revealed tier; trickle cheap buys under 25%
-// of the bank; tiptoe early but not forever; read every note.
+// Strategy lives in a policy object (js/dev/policies.js); the default
+// steadyPolicy reproduces the historical fixed bot decision-for-decision —
+// the tuned e2e runs depend on that byte-level equivalence.
 
 import { createState, departTown } from '../engine/state.js';
 import { dispatch } from '../engine/actions.js';
 import { tick, runOffline } from '../engine/tick.js';
 import { nextCost, starsAtLifetime, figureDone } from '../engine/math.js';
+import { steadyPolicy, BUY_PRIORITY } from './policies.js';
 
-const BUY_PRIORITY = ['starwrights', 'ministry', 'pact', 'barge', 'ferry', 'owl',
-  'phantom', 'sprite', 'bunny', 'mouse', 'scout'];
 const UPGRADE_IDS = ['babyfae', 'pincers', 'tweezers', 'gloves', 'starlight',
   'afterglow', 'sandman', 'dreamledger', 'nightledger', 'lucidcontract',
   'sockradar', 'madrid', 'encore', 'feltslippers', 'lighthouse', 'manifestii',
@@ -33,13 +33,17 @@ export function botTrace(state, cfg) {
 // cards in priority order, then departs. departTown returns a brand-new
 // state object (it cannot be swapped in place), so runBot's loop adopts it:
 // `const next = departTown(...); if (next) state = next;`.
-export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick = 1, onTick, contracts, prestige = false } = {}) {
+export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick, onTick, contracts, prestige = false, policy = steadyPolicy() } = {}) {
   let state = createState(seed);
   const events = [];
   let steps = 0;
+  let beatWait = -1; // -1 while no beat is pending a policy delay draw
   while (steps < maxTicks) {
     steps++;
     if (state.beatQueue.length) {
+      if (beatWait < 0) beatWait = policy.beatDelayTicks();
+      if (beatWait > 0) { beatWait--; continue; }
+      beatWait = -1;
       const id = state.beatQueue[0];
       const beat = script.beats.find((b) => b.id === id);
       dispatch(state, cfg, 'applyBeatEffects', { effects: beat && beat.effects });
@@ -71,23 +75,23 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
       continue;
     }
     if (state.nightShown && state.contractPicked === null && state.contractBoard.length && contracts) {
-      const best = state.contractBoard
-        .map((id) => contracts.pool.find((c) => c.id === id))
-        .sort((a, b) => (b.reward.burstS || 0) - (a.reward.burstS || 0))[0];
-      dispatch(state, cfg, 'pickContract', { id: best.id });
+      const board = state.contractBoard.map((id) => contracts.pool.find((c) => c.id === id));
+      dispatch(state, cfg, 'pickContract', { id: policy.pickContract(board) });
     }
-    for (let i = 0; i < tapsPerTick; i++) dispatch(state, cfg, 'tap');
-    if (state.stir > 75) dispatch(state, cfg, 'tiptoe');
-    if (state.notes > 0) dispatch(state, cfg, 'readNote');
+    const taps = tapsPerTick !== undefined ? tapsPerTick : policy.tapsPerTick(state);
+    for (let i = 0; i < taps; i++) dispatch(state, cfg, 'tap');
+    if (policy.shouldTiptoe(state)) dispatch(state, cfg, 'tiptoe');
+    if (state.notes > 0 && policy.shouldReadNote(state)) dispatch(state, cfg, 'readNote');
     for (const id of UPGRADE_IDS) {
-      if (!state.upgrades[id]) dispatch(state, cfg, 'buyUpgrade', { id });
+      if (!state.upgrades[id] && policy.shouldBuyUpgrade(state, id)) dispatch(state, cfg, 'buyUpgrade', { id });
     }
-    if (state.revealed.loom && state.stir > 40) dispatch(state, cfg, 'buyLoom');
+    if (policy.shouldBuyLoom(state)) dispatch(state, cfg, 'buyLoom');
 
-    // Hoard toward the best revealed tier; meanwhile only buy units that
-    // repay their cost within ~5 minutes — they accelerate the save.
+    // The policy decides which units to take; the quote hands it the steady
+    // payback math (cost, rate, mortal life cap, best revealed tier) so
+    // policies can honor, ignore, or invert the rule without recomputing it.
     const top = BUY_PRIORITY.find((u) => state.revealed['unit:' + u]);
-    for (const unit of BUY_PRIORITY) {
+    for (const unit of policy.unitOrder(state)) {
       if (!state.revealed['unit:' + unit]) continue;
       const def = cfg.UNITS[unit];
       const cost = nextCost(def.base, def.growth, state.buys[unit]);
@@ -98,7 +102,7 @@ export function runBot(cfg, script, { maxTicks = 200000, seed = 1, tapsPerTick =
         ? rate * (def.lifeTicks * cfg.TICK_MS / 1000) *
           (1 + (state.upgrades.afterglow ? def.afterglowFrac : 0))
         : Infinity;
-      if (unit === top || (cost / rate <= 450 && cost < lifeCap)) {
+      if (policy.shouldBuyUnit(state, unit, { cost, rate, lifeCap, top })) {
         dispatch(state, cfg, 'buyUnit', { unit });
       }
     }
