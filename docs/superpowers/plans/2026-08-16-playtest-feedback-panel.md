@@ -499,6 +499,9 @@ the window **unoccluded**, because a covered window freezes rAF:
 3. Record ~5 s of voice; confirm it queues, replays, and shows a duration.
 4. Shift-click delete removes without a prompt; plain click shows the confirm row.
 5. `Submit session` with the file sink downloads a zip containing the jsonl and the audio.
+6. Queue one text note and one voice note, then reload the page. Confirm both entries
+   return from IndexedDB, and that a new entry queued after the reload continues the
+   `#<seq>` sequence rather than restarting at `#0`/`#1`.
 
 ## Out of scope
 

@@ -27,12 +27,12 @@ A session is one `tf-session-<id>.jsonl` plus zero or more audio files
 `tf-session-<id>-v<k>.m4a` (or `.webm`). `<id>` matches `\d{13}-[a-z0-9]{4}`.
 
 - If the user gave a path, use it.
-- Else check for a local zip first — the panel's file sink (used before infra exists, or
-  whenever the broker is unreachable) downloads `<sessionId>.zip` containing the jsonl and
-  every audio file:
+- Else check for a local download first — the panel's file sink (used before infra exists,
+  or whenever the broker is unreachable) downloads `<sessionId>.zip` containing the jsonl and
+  every audio file, or a bare `<sessionId>.jsonl` when there is no audio:
 
-      ls -t ~/Downloads/*.zip
-      unzip -d /tmp/tf-<id> ~/Downloads/<sessionId>.zip
+      ls -t ~/Downloads/*.zip ~/Downloads/tf-session-*.jsonl 2>/dev/null
+      unzip -d /tmp/tf-<id> ~/Downloads/<sessionId>.zip   # only if a .zip was found
 
 - Else pull from S3 (see "S3 source" below).
 

@@ -93,7 +93,7 @@ shipped player bundle.
 | Position | Fixed column right of the game, desktop only (≥1100px wide) |
 | Does it pause the game? | No — the tick loop keeps running while a tester talks or types |
 | Entry storage | IndexedDB `tf-playtest`, survives a reload |
-| Submit, no infra deployed | Downloads a zip (`<sessionId>.zip`: the events jsonl plus every voice recording) |
+| Submit, no infra deployed | Downloads a zip (`<sessionId>.zip`: the events jsonl plus every voice recording), or the bare `<sessionId>.jsonl` when there is no audio |
 | Submit, infra deployed | Uploads straight to S3 through a token-gated broker; no AWS keys in the browser |
 | Analyze afterward | `.claude/skills/analyze-playtest` — locate, transcribe, merge, triage, write a report |
 
@@ -118,14 +118,23 @@ this gets used.
 The S3 path needs `submission-broker/` provisioned first — a small, reusable Terraform module
 plus Lambda that hands the browser a one-shot, token-gated upload grant. This has **deliberately
 not been run**: applying it creates a real S3 bucket and a publicly reachable Function URL,
-which is the owner's call, not something scripted for you. Until then, `submit session` always
-downloads the zip.
+which is the owner's call, not something scripted for you. Until then, `submit session`
+downloads a zip, or the bare `.jsonl` when there is no audio.
 
 To analyze a submitted session, see `.claude/skills/analyze-playtest/SKILL.md`, or run its
 three scripts directly: `scripts/submissions.mjs` (list/pull/rm from S3), `scripts/transcribe.mjs`
 (Whisper transcription of voice notes), and `scripts/playtest-merge.mjs` (merge into a
 markdown report). Full design in
 `docs/superpowers/specs/2026-08-16-playtest-feedback-panel.md`.
+
+### Browser verification
+
+The panel's IndexedDB persistence has no unit coverage (no IndexedDB in Node, and a shim
+would breach the zero-deps rule) — check it by hand with the game served on 8123 and the
+window unoccluded:
+1. `http://localhost:8123/?playtest=1` — queue one text note and one voice note.
+2. Reload the page; confirm both entries return from IndexedDB.
+3. Queue a new entry; confirm its `#<seq>` continues from before the reload, not `#0`/`#1`.
 
 ## Design notes
 

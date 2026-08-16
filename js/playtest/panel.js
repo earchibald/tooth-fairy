@@ -135,6 +135,9 @@ export function mountPlaytestPanel(ctx) {
   const queue = el('ol', 'ptQueue');
   queue.dataset.testid = 'pt-queue';
   panel.appendChild(queue);
+  const queueEmptyEl = el('li', 'ptNote', n.queueEmpty);
+  queueEmptyEl.dataset.testid = 'pt-queue-empty';
+  queue.appendChild(queueEmptyEl);
 
   // ---- footer ----
   const foot = el('div', 'ptFoot');
@@ -173,6 +176,10 @@ export function mountPlaytestPanel(ctx) {
     meta.textContent = `${n.session}${session.id}${n.entries}: ${entries.length}`;
   }
 
+  function refreshQueueEmpty() {
+    queueEmptyEl.hidden = entries.length !== 0;
+  }
+
   function nextId() {
     return `${Date.now()}-${seq}`;
   }
@@ -200,6 +207,7 @@ export function mountPlaytestPanel(ctx) {
       const audio = document.createElement('audio');
       audio.controls = true;
       audio.src = objectUrlFor(entry);
+      audio.dataset.testid = 'pt-audio-' + entry.id;
       li.appendChild(audio);
       li.appendChild(el('div', 'ptMeta', formatClockMs(entry.durationMs)));
     } else {
@@ -263,6 +271,7 @@ export function mountPlaytestPanel(ctx) {
     queue.appendChild(renderItem(entry));
     queue.scrollTop = queue.scrollHeight;
     refreshMeta();
+    refreshQueueEmpty();
   }
 
   function deleteEntry(id) {
@@ -274,6 +283,7 @@ export function mountPlaytestPanel(ctx) {
     const li = queue.querySelector(`li[data-id="${CSS_ESCAPE(id)}"]`);
     if (li) li.remove();
     refreshMeta();
+    refreshQueueEmpty();
   }
 
   // dataset values never contain quotes (ids are `${ms}-${seq}`), but this
@@ -293,10 +303,12 @@ export function mountPlaytestPanel(ctx) {
     for (const id of [...objectUrls.keys()]) revokeUrl(id);
     entries.length = 0;
     while (queue.firstChild) queue.removeChild(queue.firstChild);
+    queue.appendChild(queueEmptyEl);
     pendingDelete.clear();
     session = fresh;
     seq = fresh.seqNext;
     refreshMeta();
+    refreshQueueEmpty();
   }
 
   function renderNewSessionControls() {
@@ -489,11 +501,13 @@ export function mountPlaytestPanel(ctx) {
     seq = nextSeq(seq, restored);
     if (restored.length) queue.scrollTop = queue.scrollHeight;
     refreshMeta();
+    refreshQueueEmpty();
     textSubmit.disabled = false;
     if (micAvailable) recBtn.disabled = false;
   })();
 
   refreshMeta();
+  refreshQueueEmpty();
 
   function dispose() {
     clearInterval(trailTimer);

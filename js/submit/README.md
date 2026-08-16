@@ -10,6 +10,16 @@ with no edits and it works the same way there.
 Do not import anything from outside this directory into it. Its vocabulary
 is `submission`, `session`, `file` — nothing app-specific.
 
+## Tests live outside this directory
+
+The two test files exercising this package — `test/submit-zip.test.js` and
+`test/submit-client.test.js` — live at the parent repo's `test/` root, not
+inside `js/submit/`, because that repo's test runner (`node --test`) only
+looks there. Moving this directory into another project means moving those
+two files alongside it and fixing their imports: they currently read
+`../js/submit/...`; from the new location they need whatever relative path
+reaches the moved directory.
+
 ## Input type
 
 Every function in this package takes the same shape:
