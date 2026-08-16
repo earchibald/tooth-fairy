@@ -19,6 +19,33 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
   root.dataset.testid = 'roost';
   const cards = [];   // {key, isVisible(state), node, update(state), actions:[{btn,run}]}
 
+  const skyInfo = {
+    oldroads: 'new towns begin with baby fae and pincers',
+    mouseletter: `new towns begin with ${cfg.SKY.mouseletter.scouts} tooth scouts`,
+    packedlight: 'new towns begin with the dream ledger signed',
+    lullabythread: `hush +${cfg.SKY.lullabythread.hush}, every town`,
+    starcharts: 'the contract streak survives the move',
+    ferrytoken: `barge manifest cap +${cfg.SKY.ferrytoken.cap * 100}%, every town`,
+  };
+
+  const upgradeInfo = {
+    babyfae: 'taps gather ×2',
+    pincers: 'taps gather ×2 again',
+    tweezers: 'taps gather ×2 again',
+    gloves: 'taps gather ×2 again',
+    starlight: `each tap adds ${cfg.UPGRADES.starlight.tapRateFrac * 100}% of the flow`,
+    afterglow: 'a sprite pays half its life again when it goes',
+    sandman: `tiptoes for you past stir ${cfg.TIPTOE.SANDMAN_AT}`,
+    dreamledger: `offline gathering: ${cfg.UPGRADES.dreamledger.offlineRate * 100}% for ${cfg.UPGRADES.dreamledger.offlineCapHours}h`,
+    nightledger: `offline window grows to ${cfg.UPGRADES.nightledger.offlineCapHours}h`,
+    lucidcontract: `offline gathering: 100% for ${cfg.UPGRADES.lucidcontract.offlineCapHours}h`,
+    sockradar: 'tooth scouts ×2', madrid: 'pillow mice ×2',
+    encore: 'sprites live 50% longer', feltslippers: 'floss phantoms ×2',
+    lighthouse: 'tooth ferries ×2', manifestii: 'barge manifest share ×2',
+    notary: 'parent pacts ×2', annexforms: 'ministry ×2',
+    moonclippers: 'taps gather ×2 again',
+  };
+
   function makeCard({ key, title, testid }) {
     const node = el('div', 'card');
     node.dataset.testid = testid;
@@ -64,14 +91,6 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
   }
 
   // ---- the sky (star shop): permanent, star-priced, cross-town ----
-  const skyInfo = {
-    oldroads: 'new towns begin with baby fae and pincers',
-    mouseletter: `new towns begin with ${cfg.SKY.mouseletter.scouts} tooth scouts`,
-    packedlight: 'new towns begin with the dream ledger signed',
-    lullabythread: `hush +${cfg.SKY.lullabythread.hush}, every town`,
-    starcharts: 'the contract streak survives the move',
-    ferrytoken: `barge manifest cap +${cfg.SKY.ferrytoken.cap * 100}%, every town`,
-  };
   for (const id of Object.keys(cfg.SKY)) {
     const n = names.sky[id];
     const c = makeCard({ key: 'sky:' + id, title: n.name, testid: 'card-sky-' + id });
@@ -189,23 +208,6 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
   }
 
   // ---- flag upgrades ----
-  const upgradeInfo = {
-    babyfae: 'taps gather ×2',
-    pincers: 'taps gather ×2 again',
-    tweezers: 'taps gather ×2 again',
-    gloves: 'taps gather ×2 again',
-    starlight: `each tap adds ${cfg.UPGRADES.starlight.tapRateFrac * 100}% of the flow`,
-    afterglow: 'a sprite pays half its life again when it goes',
-    sandman: `tiptoes for you past stir ${cfg.TIPTOE.SANDMAN_AT}`,
-    dreamledger: `offline gathering: ${cfg.UPGRADES.dreamledger.offlineRate * 100}% for ${cfg.UPGRADES.dreamledger.offlineCapHours}h`,
-    nightledger: `offline window grows to ${cfg.UPGRADES.nightledger.offlineCapHours}h`,
-    lucidcontract: `offline gathering: 100% for ${cfg.UPGRADES.lucidcontract.offlineCapHours}h`,
-    sockradar: 'tooth scouts ×2', madrid: 'pillow mice ×2',
-    encore: 'sprites live 50% longer', feltslippers: 'floss phantoms ×2',
-    lighthouse: 'tooth ferries ×2', manifestii: 'barge manifest share ×2',
-    notary: 'parent pacts ×2', annexforms: 'ministry ×2',
-    moonclippers: 'taps gather ×2 again',
-  };
   for (const id of Object.keys(cfg.UPGRADES)) {
     const n = names.upgrades[id];
     const c = makeCard({ key: 'up:' + id, title: n.name, testid: 'card-' + id });
@@ -228,6 +230,45 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
         set('dis', s.teeth < cost, (v) => { b.btn.disabled = v; });
       },
     });
+  }
+
+  // ---- the kit: everything owned, and what it does ----
+  const kit = el('div', 'kit');
+  kit.hidden = true;
+  const kitHead = el('div', 'logNotesHead', names.ui.kitTitle);
+  const kitRows = el('div', 'kitRows');
+  kit.append(kitHead, kitRows);
+  root.appendChild(kit);
+  let kitSig = '';
+
+  function updateKit(s) {
+    const parts = [s.loom];
+    for (const u of UNIT_IDS) parts.push(s.mults[u] || 0);
+    for (const id of Object.keys(cfg.UPGRADES)) parts.push(s.upgrades[id] ? 1 : 0);
+    for (const id of Object.keys(cfg.SKY)) parts.push(s.sky && s.sky[id] ? 1 : 0);
+    const next = parts.join(',');
+    if (next === kitSig) return;
+    kitSig = next;
+    while (kitRows.firstChild) kitRows.removeChild(kitRows.firstChild);
+    const addRow = (name, effect) => {
+      const row = el('div', 'kitRow');
+      row.append(el('span', 'kitName', name), el('span', 'kitFx', effect));
+      kitRows.appendChild(row);
+    };
+    if (s.loom > 0) {
+      addRow(`${names.loom.name} lv ${s.loom}`, `hush +${cfg.LOOM.hushPerLevel * s.loom}`);
+    }
+    for (const u of UNIT_IDS) {
+      const m = s.mults[u] || 0;
+      if (m > 0) addRow(names.multNames[u], `×${1 << m} ${names.multName}`);
+    }
+    for (const id of Object.keys(cfg.UPGRADES)) {
+      if (s.upgrades[id]) addRow(names.upgrades[id].name, upgradeInfo[id] || '');
+    }
+    for (const id of Object.keys(cfg.SKY)) {
+      if (s.sky && s.sky[id]) addRow('★ ' + names.sky[id].name, skyInfo[id] || '');
+    }
+    kit.hidden = !kitRows.firstChild;
   }
 
   const everVisible = new Set();
@@ -289,6 +330,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
           card.keySlot = 0;
         }
       }
+      updateKit(state);
     },
     pressKey(n) {
       const card = cards.find((c) => c.keySlot === n);

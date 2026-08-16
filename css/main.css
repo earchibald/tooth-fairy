@@ -215,6 +215,13 @@ body {
 }
 @media (hover: none) and (pointer: coarse) { .buyBtn .key { display: none; } }
 
+/* ---------- the kit (owned gear ledger) ---------- */
+.kit { margin-top: 18px; padding: 0 4px 12px; }
+.kitRows { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.kitRow { display: flex; gap: 8px; font-size: 11px; align-items: baseline; }
+.kitName { color: var(--accent); letter-spacing: 0.06em; white-space: nowrap; }
+.kitFx { color: var(--dim); }
+
 /* ---------- tray ---------- */
 .tray { flex: 0 0 auto; position: relative; padding-top: 4px; }
 .counterWrap { text-align: center; min-height: 52px; }

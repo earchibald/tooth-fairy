@@ -70,7 +70,10 @@ export function buildUI(app, ctx) {
 
   // ---- tabs (the bar sits below the panels, just above the counter) ----
   const tabs = createTabs(app, names, (id) => {
-    if (id === 'log') dispatch('openJournal');
+    if (id === 'log') {
+      dispatch('openJournal');
+      log.scrollToEnd();
+    }
   });
   attachTip(tabs.bar.children[0], names.tips.tabTonight);
   attachTip(tabs.bar.children[1], names.tips.tabLog);

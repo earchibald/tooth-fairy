@@ -20,6 +20,15 @@ export function createLog(panel, { names, dispatch }) {
   panel.append(noteBar, noteList, stamps, entries);
   let sig = '';
 
+  // The panel itself scrolls (.tabPanel). Pin follows the newest entry
+  // unless the player has scrolled up to read history.
+  function nearBottom() {
+    return panel.scrollHeight - panel.scrollTop - panel.clientHeight < 40;
+  }
+  function scrollToEnd() {
+    requestAnimationFrame(() => { panel.scrollTop = panel.scrollHeight; });
+  }
+
   function update(state, script) {
     const next = state.beatsSeen.length + ':' + state.night + ':' +
       state.nightPhase + ':' + state.nightLedger.length + ':' +
@@ -28,6 +37,7 @@ export function createLog(panel, { names, dispatch }) {
       (state.notesShown && state.act >= 2);
     if (next === sig) return;
     sig = next;
+    const pin = !panel.hidden && nearBottom();
     const canRead = state.notesShown && state.act >= 2;
     readBtn.hidden = !canRead;
     if (canRead) {
@@ -90,6 +100,7 @@ export function createLog(panel, { names, dispatch }) {
       empty.textContent = '(nothing yet. get some teeth.)';
       entries.appendChild(empty);
     }
+    if (pin) scrollToEnd();
   }
-  return { update };
+  return { update, scrollToEnd };
 }
