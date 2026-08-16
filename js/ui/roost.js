@@ -3,7 +3,7 @@
 // text writes — never a rebuild. Buttons print base numbers, never derived.
 
 import { nextCost, maxAffordable, fmt } from '../engine/math.js';
-import { multTier, multOwned, loomCost } from '../engine/predicates.js';
+import { multTier, multOwned, loomCost, loomHush } from '../engine/predicates.js';
 import { UNIT_IDS } from '../engine/state.js';
 import { attachTip } from './tooltip.js';
 
@@ -200,7 +200,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
         const set = (k, v, fn) => { if (cache[k] !== v) { cache[k] = v; fn(v); } };
         set('lv', s.loom > 0 ? `${names.ui.level} ${s.loom}` : '',
           (v) => { c.lv.textContent = v; c.lv.hidden = !v; });
-        set('info', `hush +${cfg.LOOM.hushPerLevel} apiece`, (v) => { c.info.textContent = v; });
+        set('info', `hush +${Math.round(cfg.LOOM.hushPerLevel * Math.pow(cfg.LOOM.hushFalloff, s.loom))} next`, (v) => { c.info.textContent = v; });
         set('cost', fmt(cost), (v) => { b.cost.textContent = v; });
         set('dis', s.teeth < cost, (v) => { b.btn.disabled = v; });
       },
@@ -256,7 +256,7 @@ export function createRoost(root, { cfg, names, vfx, dispatch, onCeremony }) {
       kitRows.appendChild(row);
     };
     if (s.loom > 0) {
-      addRow(`${names.loom.name} lv ${s.loom}`, `hush +${cfg.LOOM.hushPerLevel * s.loom}`);
+      addRow(`${names.loom.name} lv ${s.loom}`, `hush +${Math.round(loomHush(s, cfg))}`);
     }
     for (const u of UNIT_IDS) {
       const m = s.mults[u] || 0;

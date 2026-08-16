@@ -33,7 +33,7 @@ initSound(vfx);
 // ---- state ----
 const box = { state: null };
 let savedAt = null;
-const savedRaw = params.get('fresh') === '1' ? null : localStorage.getItem('tf-save');
+const savedRaw = DEV && params.get('fresh') === '1' ? null : localStorage.getItem('tf-save');
 if (savedRaw) {
   const parsed = deserialize(savedRaw);
   if (parsed) { box.state = parsed.state; savedAt = parsed.savedAt; }
