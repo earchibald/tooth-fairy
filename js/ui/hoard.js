@@ -209,6 +209,12 @@ function paintMoon(c, x, y, px, alpha, colors) {
   c.globalAlpha = alpha;
 }
 
+// Draws the whole hoard for `count` teeth. Quiet by default (vfx.hoard.alpha);
+// scenes anchor to a ground line just above the canvas bottom and keep the
+// tap button's center gap clear. The moons tier keeps a faint mountain ridge
+// under its risen moons. `scale` multiplies every tier's px (the stage draws
+// at stageScale); `centerGapPx`/`alpha` override the vfx.hoard defaults —
+// pass 0 to mean 0, the fallbacks apply only when omitted.
 export function drawHoard(ctx2d, { w, h, count, vfx, colors, scale = 1, centerGapPx, alpha }) {
   const hv = vfx.hoard;
   const t = tierFor(count, hv.tiers);
