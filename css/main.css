@@ -340,6 +340,7 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
 /* ---------- contract board ---------- */
 .board { padding: 8px 14px; }
 .boardTitle { font-size: 10px; letter-spacing: 0.12em; color: var(--dim); margin-bottom: 6px; }
+.boardHint { font-size: 10px; color: var(--dim); opacity: 0.8; margin: -2px 0 6px; }
 .boardRow { display: flex; gap: 8px; }
 .jobCard {
   flex: 1; text-align: left; background: var(--surface); color: var(--ink);
@@ -357,6 +358,10 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
   font-size: 12px; line-height: 1.4; box-shadow: 0 4px 18px #0008;
 }
 .jobReward { margin-top: 6px; color: var(--dim); font-size: 11px; }
+.jobGoal { margin-top: 6px; font-size: 11px; opacity: 0.9; }
+.jobProgress { margin-top: 2px; font-size: 11px; color: var(--glow);
+  font-variant-numeric: tabular-nums; }
+.jobProgress.bad { color: var(--danger); }
 .dawnMeter { font-size: 10px; letter-spacing: 0.1em; color: var(--dim); margin-top: 2px; }
 .morningCard {
   margin: 12px 14px; padding: 14px; border-radius: 12px; background: var(--surface);
