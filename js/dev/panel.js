@@ -10,52 +10,7 @@ import { SCRIPT_DEFAULTS } from '../config/script.js';
 import { runBot } from './bot.js';
 import { fmt } from '../engine/math.js';
 import { play } from '../ui/sound.js';
-
-const OV = {
-  constants: 'tf-ov-constants',
-  names: 'tf-ov-names',
-  vfx: 'tf-ov-vfx',
-  script: 'tf-ov-script',
-};
-
-function loadOv(key) {
-  try { return JSON.parse(localStorage.getItem(OV[key]) || 'null') || {}; }
-  catch { return {}; }
-}
-function saveOv(key, obj) {
-  if (obj && Object.keys(obj).length) localStorage.setItem(OV[key], JSON.stringify(obj));
-  else localStorage.removeItem(OV[key]);
-}
-function setPath(obj, path, value) {
-  let node = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    if (typeof node[path[i]] !== 'object' || node[path[i]] === null) node[path[i]] = {};
-    node = node[path[i]];
-  }
-  node[path[path.length - 1]] = value;
-}
-function deletePath(obj, path) {
-  const parents = [obj];
-  let node = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    node = node && node[path[i]];
-    parents.push(node);
-  }
-  if (!node) return;
-  delete node[path[path.length - 1]];
-  for (let i = parents.length - 1; i > 0; i--) {
-    const parent = parents[i - 1];
-    const key = path[i - 1];
-    if (parent[key] && typeof parent[key] === 'object' && !Object.keys(parent[key]).length) {
-      delete parent[key];
-    }
-  }
-}
-function getPath(obj, path) {
-  let node = obj;
-  for (const k of path) { if (node == null) return undefined; node = node[k]; }
-  return node;
-}
+import { OV, loadOv, saveOv, setPath, deletePath, getPath, applyKnob } from './ovstore.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -201,8 +156,6 @@ function buildPanel(ctx) {
 // ---------- shared: leaf-walking knob rows ----------
 
 function knobRows(body, { defaults, live, ovKey, kind }) {
-  const ov = loadOv(ovKey);
-
   function makeRow(section, path, defVal, inArray) {
     const row = el('div', 'devRow');
     const label = el('span', 'path', path.join('.'));
@@ -222,33 +175,11 @@ function knobRows(body, { defaults, live, ovKey, kind }) {
 
     function apply(raw) {
       let value = raw;
-      if (isNum) {
-        value = Number(raw);
-        // Reject, never clamp: a clamped value is a lie about what you
-        // applied. An emptied field is a rejection, not a zero, and a
-        // positive default never accepts zero or less (a 0 tick divisor
-        // once froze the whole tab).
-        if (String(raw).trim() === '' || !Number.isFinite(value) ||
-            (defVal > 0 && value <= 0)) {
-          input.classList.add('bad');
-          return;
-        }
-      }
+      if (isNum) value = Number(raw);
+      if (isNum && String(raw).trim() === '') { input.classList.add('bad'); return; }
+      const r = applyKnob({ defaults, live, ovKey, path, value });
+      if (!r.ok) { input.classList.add('bad'); return; }
       input.classList.remove('bad');
-      setPath(live, path, value);
-      if (inArray) {
-        // Array overrides only merge wholesale — store the entire live array.
-        const parent = path.slice(0, -1);
-        const liveArr = getPath(live, parent);
-        const defArr = getPath(defaults, parent);
-        if (JSON.stringify(liveArr) === JSON.stringify(defArr)) deletePath(ov, parent);
-        else setPath(ov, parent, liveArr.slice());
-      } else if (value === defVal) {
-        deletePath(ov, path);
-      } else {
-        setPath(ov, path, value);
-      }
-      saveOv(ovKey, ov);
       row.classList.toggle('changed', value !== defVal);
     }
     input.addEventListener('input', () => apply(input.value));
@@ -356,7 +287,7 @@ const WORKSHOP_KNOBS = [
 
 // One live range-slider row: writes through to the live vfx object AND the
 // tf-ov-vfx override layer, exactly like the Workshop's original rows.
-function sliderRow(body, ctx, ov, knob, onChange) {
+function sliderRow(body, ctx, knob, onChange) {
   const defVal = getPath(VFX_DEFAULTS, knob.path);
   const row = el('div', 'devRow');
   row.appendChild(el('span', 'path', knob.path[knob.path.length - 1]));
@@ -373,10 +304,7 @@ function sliderRow(body, ctx, ov, knob, onChange) {
   row.append(input, val, def, reset);
   row.classList.toggle('changed', current !== defVal);
   function apply(value) {
-    setPath(ctx.vfx, knob.path, value);
-    if (value === defVal) deletePath(ov, knob.path);
-    else setPath(ov, knob.path, value);
-    saveOv('vfx', ov);
+    applyKnob({ defaults: VFX_DEFAULTS, live: ctx.vfx, ovKey: 'vfx', path: knob.path, value });
     val.textContent = String(value);
     row.classList.toggle('changed', value !== defVal);
     if (onChange) onChange();
@@ -483,11 +411,10 @@ function tabWorkshop(body, ctx) {
       else ACTIONS[key].run(); // auto-previews never become the repeat target
     }, 150);
   }
-  const ov = loadOv('vfx');
   for (const group of WORKSHOP_KNOBS) {
     body.appendChild(el('h3', null, group.title));
     for (const knob of group.rows) {
-      sliderRow(body, ctx, ov, knob, () => {
+      sliderRow(body, ctx, knob, () => {
         ctx.ui.applyTapVars();
         autoPreview(group.preview);
       });
@@ -629,14 +556,13 @@ function tabHoard(body, ctx) {
     detail.appendChild(row);
 
     // tier knobs + shared knobs
-    const ov = loadOv('vfx');
     detail.appendChild(el('h3', null, 'this tier'));
-    sliderRow(detail, ctx, ov,
+    sliderRow(detail, ctx,
       { path: ['hoard', 'tiers', i, 'units'], min: 1, max: 14, step: 1 }, redraw);
-    sliderRow(detail, ctx, ov,
+    sliderRow(detail, ctx,
       { path: ['hoard', 'tiers', i, 'px'], min: 8, max: 120, step: 1 }, redraw);
     detail.appendChild(el('h3', null, 'whole hoard'));
-    for (const knob of HOARD_SHARED_KNOBS) sliderRow(detail, ctx, ov, knob, redraw);
+    for (const knob of HOARD_SHARED_KNOBS) sliderRow(detail, ctx, knob, redraw);
   }
 
   tiers.forEach((t, i) => {
