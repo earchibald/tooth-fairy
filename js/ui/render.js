@@ -111,7 +111,7 @@ export function buildUI(app, ctx) {
   tabs.panels.tonight.appendChild(morning);
 
   // ---- the log ----
-  const log = createLog(tabs.panels.log, { names });
+  const log = createLog(tabs.panels.log, { names, dispatch });
 
   // ---- roost ----
   const roostEl = el('section');

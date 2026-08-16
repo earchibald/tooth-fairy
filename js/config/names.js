@@ -94,6 +94,7 @@ export const NAME_DEFAULTS = Object.freeze({
     dawnSoon: 'dawn soon',
     depart: 'another town', departConfirm: 'leave for good?', townLabel: 'town', starsLabel: '★ earned',
     trace: 'trace a star',
+    notesKept: 'notes kept',
   }),
   tips: Object.freeze({
     belief: 'belief scales every tooth: ×0.5 at 0, ×1.5 at 100. quiet productive nights and notes raise it. wakes cut it.',

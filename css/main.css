@@ -312,6 +312,12 @@ textarea.saveBox { width: 100%; height: 70px; resize: none; }
 .logStamps .stamp { font-family: ui-monospace, monospace; font-size: 11px;
   color: var(--dim); padding: 3px 14px; }
 .logEntries { padding: 8px 14px; }
+.logNotes { padding: 10px 14px 0; }
+.logNoteList { padding: 4px 14px; }
+.logNotesHead { font-size: 10px; letter-spacing: 0.12em; color: var(--dim);
+  margin: 6px 0 2px; }
+.logNote { color: var(--gold); font-style: italic; font-size: 13px;
+  padding: 4px 0; border-bottom: 1px solid #ffffff0a; }
 
 /* ---------- contract board ---------- */
 .board { padding: 8px 14px; }

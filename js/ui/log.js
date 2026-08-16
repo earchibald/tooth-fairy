@@ -1,19 +1,55 @@
 import { fmt } from '../engine/math.js';
 
-export function createLog(panel, { names }) {
+export function createLog(panel, { names, dispatch }) {
+  // Notes live here too: read the next one, and keep every one already read —
+  // the stage aside is transient, the log remembers.
+  const noteBar = document.createElement('div');
+  noteBar.className = 'logNotes';
+  const readBtn = document.createElement('button');
+  readBtn.className = 'chip';
+  readBtn.dataset.testid = 'log-read-note';
+  readBtn.hidden = true;
+  readBtn.addEventListener('click', () => dispatch('readNote'));
+  noteBar.appendChild(readBtn);
+  const noteList = document.createElement('div');
+  noteList.className = 'logNoteList';
   const stamps = document.createElement('div');
   stamps.className = 'logStamps';
   const entries = document.createElement('div');
   entries.className = 'logEntries';
-  panel.append(stamps, entries);
+  panel.append(noteBar, noteList, stamps, entries);
   let sig = '';
 
   function update(state, script) {
     const next = state.beatsSeen.length + ':' + state.night + ':' +
       state.nightPhase + ':' + state.nightLedger.length + ':' +
-      state.townLedger.length + ':' + state.town;
+      state.townLedger.length + ':' + state.town + ':' +
+      state.notes + ':' + state.notesRead + ':' +
+      (state.notesShown && state.act >= 2);
     if (next === sig) return;
     sig = next;
+    const canRead = state.notesShown && state.act >= 2;
+    readBtn.hidden = !canRead;
+    if (canRead) {
+      readBtn.textContent = names.verbs.readNote + ' (' + state.notes + ')';
+      readBtn.disabled = state.notes < 1;
+    }
+    while (noteList.firstChild) noteList.removeChild(noteList.firstChild);
+    const pool = script.notes;
+    // Note k (read order) recycles through the pool; older repeats add nothing.
+    const kept = Math.min(state.notesRead, pool.length);
+    if (kept > 0) {
+      const head = document.createElement('div');
+      head.className = 'logNotesHead';
+      head.textContent = names.ui.notesKept;
+      noteList.appendChild(head);
+      for (let k = state.notesRead - 1; k >= state.notesRead - kept; k--) {
+        const row = document.createElement('div');
+        row.className = 'logNote';
+        row.textContent = pool[k % pool.length];
+        noteList.appendChild(row);
+      }
+    }
     while (stamps.firstChild) stamps.removeChild(stamps.firstChild);
     for (const t of state.townLedger.slice().reverse()) {
       const row = document.createElement('div');
