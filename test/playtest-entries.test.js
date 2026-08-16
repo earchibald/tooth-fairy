@@ -25,6 +25,22 @@ test('newSessionId: deterministic under an injected rand', () => {
   assert.equal(a, b);
 });
 
+test('newSessionId: suffix is always 4 base-36 chars, even when rand returns exactly 0', () => {
+  // rand() = 0 would produce "0" with no decimal point; old code would slice wrong
+  const id0 = newSessionId(1755302400000, () => 0);
+  assert.match(id0, /^\d{13}-[a-z0-9]{4}$/);
+});
+
+test('newSessionId: suffix is always 4 base-36 chars when rand returns 0.5', () => {
+  const id05 = newSessionId(1755302400000, () => 0.5);
+  assert.match(id05, /^\d{13}-[a-z0-9]{4}$/);
+});
+
+test('newSessionId: suffix is always 4 base-36 chars when rand returns just under 1', () => {
+  const id999 = newSessionId(1755302400000, () => 0.9999999);
+  assert.match(id999, /^\d{13}-[a-z0-9]{4}$/);
+});
+
 test('makeTextEntry: refuses blank or whitespace-only text', () => {
   assert.equal(makeTextEntry({
     id: '1-1', text: '', markerStart: marker(0), markerEnd: marker(1), trail: trail(), createdAt: 1,

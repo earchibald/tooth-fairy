@@ -4,7 +4,10 @@
 // (editing a voice entry as text).
 
 export function newSessionId(nowMs, rand) {
-  const suffix = (rand().toString(36) + '0000').slice(2, 6);
+  // Suffix must be exactly 4 base-36 characters [a-z0-9] for every rand() in [0, 1).
+  // Math.random() can return exactly 0, so we cannot rely on decimal-point position
+  // when stringifying. Instead, scale rand to [0, 36^4), floor to integer, and pad.
+  const suffix = Math.floor(rand() * 36 ** 4).toString(36).padStart(4, '0');
   return `${nowMs}-${suffix}`;
 }
 
@@ -56,8 +59,8 @@ export function editText(entry, text, editedAt) {
   };
 }
 
-// 1-based index among voice entries only, in seq order. -1 if not a voice
-// entry (or not found) in the given list.
+// 1-based index among voice entries only, computed from seq order.
+// Returns -1 if the id is not a voice entry or not found.
 export function voiceIndex(entries, id) {
   const voices = entries.filter((e) => e.kind === 'voice').sort((a, b) => a.seq - b.seq);
   const i = voices.findIndex((e) => e.id === id);
