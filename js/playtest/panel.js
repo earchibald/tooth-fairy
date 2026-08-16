@@ -141,6 +141,8 @@ export function mountPlaytestPanel(ctx) {
   const submitBottom = el('button', 'ptBtn', n.submit);
   submitBottom.dataset.testid = 'pt-submit-bottom';
   foot.appendChild(submitBottom);
+  const newSessionRow = el('div', 'ptRow');
+  foot.appendChild(newSessionRow);
   const status = el('div', 'ptStatus', '');
   status.dataset.testid = 'pt-status';
   foot.appendChild(status);
@@ -157,6 +159,7 @@ export function mountPlaytestPanel(ctx) {
   let textMarkerStart = null;
   let prevTextValue = '';
   const pendingDelete = new Set();
+  let newSessionConfirming = false;
   const trail = createTrail();
 
   function clock() {
@@ -278,6 +281,53 @@ export function mountPlaytestPanel(ctx) {
   function CSS_ESCAPE(s) {
     return String(s).replace(/["\\]/g, '\\$&');
   }
+
+  // ---- new session ----
+  // Clears the store and the in-memory queue, then opens a fresh session —
+  // mirrors the init IIFE below, minus restoring entries (there are none to
+  // restore right after a clear).
+  async function startNewSession() {
+    if (!store) return;
+    await store.clear();
+    const fresh = await store.openSession(Date.now(), Math.random);
+    for (const id of [...objectUrls.keys()]) revokeUrl(id);
+    entries.length = 0;
+    while (queue.firstChild) queue.removeChild(queue.firstChild);
+    pendingDelete.clear();
+    session = fresh;
+    seq = fresh.seqNext;
+    refreshMeta();
+  }
+
+  function renderNewSessionControls() {
+    while (newSessionRow.firstChild) newSessionRow.removeChild(newSessionRow.firstChild);
+    if (newSessionConfirming) {
+      newSessionRow.appendChild(el('span', null, n.newSessionConfirm));
+      const yes = el('button', 'ptBtn warn', n.newSessionYes);
+      yes.dataset.testid = 'pt-new-session-yes';
+      yes.addEventListener('click', async () => {
+        newSessionConfirming = false;
+        await startNewSession();
+        renderNewSessionControls();
+      });
+      const no = el('button', 'ptBtn', n.newSessionNo);
+      no.dataset.testid = 'pt-new-session-no';
+      no.addEventListener('click', () => {
+        newSessionConfirming = false;
+        renderNewSessionControls();
+      });
+      newSessionRow.append(yes, no);
+    } else {
+      const btn = el('button', 'ptBtn warn', n.newSession);
+      btn.dataset.testid = 'pt-new-session';
+      btn.addEventListener('click', () => {
+        newSessionConfirming = true;
+        renderNewSessionControls();
+      });
+      newSessionRow.appendChild(btn);
+    }
+  }
+  renderNewSessionControls();
 
   // ---- trail sampler: own 2s interval, independent of rAF ----
   const trailTimer = setInterval(() => {
