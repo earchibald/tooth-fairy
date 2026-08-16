@@ -111,6 +111,10 @@ export function build() {
       `Promise.resolve(__modules[${JSON.stringify(resolveSpec(relPath, spec))}])`);
     // import.meta.url -> stable fake file URL (sound.js only uses it as a URL base)
     out = out.replace(/import\.meta\.url/g, JSON.stringify('file:///bundle/' + relPath));
+    // Fail-loud guard, intentional: if any source string ever contains the
+    // bare word "import" or "export" (e.g. in prose), this trips and the
+    // build dies with a clear message. Split the word inside the string
+    // (e.g. 'imp' + 'ort') if that ever happens — do not loosen this regex.
     if (/(^|[^.\w'"`])import[\s(]/.test(out)) die(relPath + ': unhandled import syntax survived transform');
     if (/(^|\n)\s*export\s/.test(out)) die(relPath + ': unhandled export syntax survived transform');
     return out + '\n' + names.map((n) => `__exp.${n} = ${n};`).join('\n');

@@ -33,6 +33,12 @@ test('relative: "double the sound tap"', () => {
   assert.equal(r.action.value, before * 2);
 });
 
+test('set: a ranged Workshop knob to 0 carries min in the action', () => {
+  const r = respond({ ...ctx('Workshop'), text: 'set tap glow alpha to 0' });
+  assert.deepEqual(r.action, {
+    type: 'set', ovKey: 'vfx', path: ['juice', 'tapGlow', 'alpha'], value: 0, tab: 'Workshop', min: 0 });
+});
+
 test('reset uses the default', () => {
   const c = ctx();
   c.live.vfx.sound.tap = 0.9;

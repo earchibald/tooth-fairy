@@ -129,9 +129,11 @@ function resolveSet(matches, { lower, isReset, isDouble, isHalve, val, live, not
   else return { reply: 'Give me a value: e.g. "set ' + fmtPath(k) + ' to 0.5", '
     + '"raise it 20%", or "reset it". Current: ' + knobLine(k, live) };
   const tabNote = noteTab ? `${k.tab} tab; ` : '';
+  const action = { type: 'set', ovKey: k.ovKey, path: k.path, value, tab: k.tab };
+  if (k.min !== undefined) action.min = k.min;
   return {
     reply: `Setting ${fmtPath(k)} → ${JSON.stringify(value)} (${tabNote}was ${JSON.stringify(cur)}, default ${JSON.stringify(k.def)}).`,
-    action: { type: 'set', ovKey: k.ovKey, path: k.path, value, tab: k.tab },
+    action,
   };
 }
 

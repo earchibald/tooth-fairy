@@ -43,6 +43,22 @@ test('applyKnob rejects, never clamps', () => {
   assert.equal(r2.ok, false);
 });
 
+test('applyKnob honors a declared min range', () => {
+  const defaults = { alpha: 0.5 };
+  const live = { alpha: 0.5 };
+  saveOv('vfx', {});
+  let r = applyKnob({ defaults, live, ovKey: 'vfx', path: ['alpha'], value: 0, min: 0 });
+  assert.equal(r.ok, true);
+  assert.equal(live.alpha, 0);
+  assert.deepEqual(loadOv('vfx'), { alpha: 0 });
+  r = applyKnob({ defaults, live, ovKey: 'vfx', path: ['alpha'], value: -0.1, min: 0 });
+  assert.equal(r.ok, false);
+  const live2 = { alpha: 0.5 };
+  r = applyKnob({ defaults, live: live2, ovKey: 'vfx', path: ['alpha'], value: 0 });
+  assert.equal(r.ok, false);
+  assert.equal(live2.alpha, 0.5);
+});
+
 test('applyKnob stores whole arrays wholesale', () => {
   const defaults = { ramp: { steps: [1, 2, 3] } };
   const live = { ramp: { steps: [1, 2, 3] } };

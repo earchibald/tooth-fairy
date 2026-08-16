@@ -309,7 +309,18 @@ function sliderRow(body, ctx, knob, onChange) {
   row.append(input, val, def, reset);
   row.classList.toggle('changed', current !== defVal);
   function apply(value) {
-    applyKnob({ defaults: VFX_DEFAULTS, live: ctx.vfx, ovKey: 'vfx', path: knob.path, value });
+    const r = applyKnob({
+      defaults: VFX_DEFAULTS, live: ctx.vfx, ovKey: 'vfx', path: knob.path, value, min: knob.min,
+    });
+    if (!r.ok) {
+      // Can't show a red border on a range input the way knobRows does for
+      // text fields — snap the slider and readout back to the live value
+      // instead of pretending the rejected value took.
+      const liveVal = getPath(ctx.vfx, knob.path);
+      input.value = String(liveVal);
+      val.textContent = String(liveVal);
+      return;
+    }
     val.textContent = String(value);
     row.classList.toggle('changed', value !== defVal);
     if (onChange) onChange();

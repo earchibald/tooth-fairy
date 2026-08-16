@@ -133,6 +133,10 @@ export function mountChat({ root, ctx, packs, dock }) {
       delivered.push('copied to clipboard');
     } catch { /* denied */ }
     try {
+      // claude.use is the Claude Artifact runtime capability API — it exists
+      // only inside a published Claude Artifact, never in plain browsers or
+      // tests. The typeof/truthy guard is deliberate feature detection, not
+      // dead code.
       const use = (typeof claude !== 'undefined' && claude && claude.use)
         ? claude.use.bind(claude) : null;
       const downloads = use ? await use('downloads') : null;
@@ -156,7 +160,7 @@ export function mountChat({ root, ctx, packs, dock }) {
     if (!a) return;
     if (a.type === 'set') {
       const res = applyKnob({ defaults: defaults[a.ovKey], live: live[a.ovKey],
-        ovKey: a.ovKey, path: a.path, value: a.value });
+        ovKey: a.ovKey, path: a.path, value: a.value, min: a.min });
       if (!res.ok) push('agent', 'Rejected: ' + res.reason);
       else if (dock.activeTab() === a.tab) dock.show(a.tab);   // rebuild rows to reflect it
       if (res.ok && ctx.ui && ctx.ui.applyTapVars) ctx.ui.applyTapVars();

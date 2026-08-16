@@ -64,16 +64,21 @@ export function getPath(obj, path) {
 // Apply one knob edit end to end: validate, write live, persist the diff.
 // Numbers are rejected, never clamped: a clamped value is a lie about what
 // you applied, and a positive default never accepts zero or less (a 0 tick
-// divisor once froze a whole tab). Array members persist wholesale — the
-// override layer only merges whole arrays.
-export function applyKnob({ defaults, live, ovKey, path, value }) {
+// divisor once froze a whole tab) — UNLESS the knob declares a slider range
+// via `min`, in which case the range is the authority and overrides the
+// positive-default rule (sliders declare min: 0 precisely to allow turning
+// an effect off). Array members persist wholesale — the override layer
+// only merges whole arrays.
+export function applyKnob({ defaults, live, ovKey, path, value, min }) {
   const defVal = getPath(defaults, path);
   if (defVal === undefined) return { ok: false, reason: 'unknown path ' + path.join('.') };
   if (typeof defVal === 'number') {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       return { ok: false, reason: 'not a finite number' };
     }
-    if (defVal > 0 && value <= 0) {
+    if (typeof min === 'number') {
+      if (value < min) return { ok: false, reason: 'must be >= ' + min };
+    } else if (defVal > 0 && value <= 0) {
       return { ok: false, reason: 'must be > 0 (default ' + defVal + ')' };
     }
   }
