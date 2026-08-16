@@ -33,12 +33,17 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
 
   // A check can catch the one-frame gap between an engine tick and the next
   // render. Only a mismatch seen on two CONSECUTIVE checks is real.
+  // The beat card waits a real-time settle gap (vfx.beats.settleMs) that
+  // does not scale with ?speed=, and occluded windows render on a 400 ms
+  // fallback — so the hidden-card direction gets one extra strike.
+  const STRIKES_TO_RECORD = { 'beat-visibility': 3 };
   const strikes = new Map();
   function issue(state, what, detail) {
-    if (strikes.get(what)) {
-      if (domIssues.length < 50) domIssues.push({ tick: state.tick, what, detail });
+    const n = (strikes.get(what) || 0) + 1;
+    strikes.set(what, n);
+    if (n >= (STRIKES_TO_RECORD[what] || 2) && domIssues.length < 50) {
+      domIssues.push({ tick: state.tick, what, detail });
     }
-    strikes.set(what, true);
   }
 
   function domCheck(state) {
