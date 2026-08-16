@@ -221,6 +221,68 @@ test('createRecorder: falls back to webm/opus mime when mp4 unsupported', async 
   assert.equal(inst.mimeType, 'audio/webm;codecs=opus');
 });
 
+// Deferred getUserMedia: lets a test hold start() mid-flight and interleave
+// a cancel()/stop() call before the microphone permission prompt resolves.
+function makeDeferredDeps({ tracks = [fakeTrack()] } = {}) {
+  const stream = fakeStream(tracks);
+  const MediaRecorderCtor = makeFakeRecorderCtor();
+  let resolveGetUserMedia;
+  const gate = new Promise((resolve) => {
+    resolveGetUserMedia = () => resolve(stream);
+  });
+  return {
+    tracks,
+    stream,
+    MediaRecorderCtor,
+    resolveGetUserMedia: () => resolveGetUserMedia(),
+    deps: {
+      getUserMedia: async () => gate,
+      MediaRecorderCtor,
+      now: () => 0,
+    },
+  };
+}
+
+test('createRecorder: cancel() during a pending start() releases the mic once it arrives', async () => {
+  const { deps, tracks, resolveGetUserMedia } = makeDeferredDeps();
+  const recorder = createRecorder(deps);
+
+  const startP = recorder.start();
+  const cancelP = recorder.cancel();
+  resolveGetUserMedia();
+  await Promise.all([startP, cancelP]);
+
+  assert.ok(tracks.every((t) => t.stopped), 'every track stopped after cancel-during-start');
+  assert.equal(recorder.isRecording(), false);
+
+  // A subsequent start() must still work.
+  await recorder.start();
+  assert.equal(recorder.isRecording(), true);
+});
+
+test('createRecorder: stop() during a pending start() releases the mic once it arrives', async () => {
+  const { deps, tracks, resolveGetUserMedia } = makeDeferredDeps();
+  const recorder = createRecorder(deps);
+
+  const startP = recorder.start();
+  const stopP = recorder.stop();
+  resolveGetUserMedia();
+  await Promise.all([startP, stopP]);
+
+  assert.ok(tracks.every((t) => t.stopped), 'every track stopped after stop-during-start');
+  assert.equal(recorder.isRecording(), false);
+
+  // A subsequent start() must still work.
+  await recorder.start();
+  assert.equal(recorder.isRecording(), true);
+});
+
+test('createRecorder: durationMs() is 0 before any recording', () => {
+  const { deps } = makeDeps();
+  const recorder = createRecorder(deps);
+  assert.equal(recorder.durationMs(), 0);
+});
+
 test('createRecorder: start() rejects when no supported mime exists', async () => {
   const tracks = [fakeTrack()];
   const stream = fakeStream(tracks);

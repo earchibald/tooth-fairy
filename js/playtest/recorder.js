@@ -23,6 +23,7 @@ export function createRecorder(deps) {
   let picked = null;
   let startedAtMs = null;
   let starting = null; // in-flight start() promise, so a second click joins it
+  let cancelled = false; // set when cancel()/stop() land while starting is in flight
 
   function releaseStream() {
     if (stream) {
@@ -50,6 +51,15 @@ export function createRecorder(deps) {
     } catch (err) {
       reset();
       throw err;
+    }
+    if (cancelled) {
+      // cancel()/stop() landed while getUserMedia was in flight: the mic
+      // handle just arrived with nothing left that wants it. Release it
+      // immediately instead of opening a recording nobody will stop.
+      cancelled = false;
+      for (const track of mediaStream.getTracks()) track.stop();
+      reset();
+      return false;
     }
     stream = mediaStream;
     picked = mimePick;
@@ -87,6 +97,12 @@ export function createRecorder(deps) {
   }
 
   function stop() {
+    if (starting) {
+      // A microphone open is still pending. Nothing has recorded yet, so
+      // there is nothing to save: wait for it to arrive, then release it.
+      cancelled = true;
+      return starting.then(() => null).catch(() => null);
+    }
     if (!isRecording()) return Promise.resolve(null);
     const mime = picked.mime;
     const ext = picked.ext;
@@ -103,6 +119,12 @@ export function createRecorder(deps) {
   }
 
   function cancel() {
+    if (starting) {
+      // A microphone open is still pending. Flag it cancelled so the
+      // settling start() releases the stream instead of leaving it live.
+      cancelled = true;
+      return starting.then(() => null).catch(() => null);
+    }
     if (!recorder) return Promise.resolve(null);
     return new Promise((resolve) => {
       const finish = () => {
