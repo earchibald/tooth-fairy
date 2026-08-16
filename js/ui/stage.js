@@ -27,7 +27,7 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     if (!w || !h) return;
     const count = hoardPreviewCount ?? hoardTeeth;
     const sig = hoardEnded ? 'ended' :
-      hoardSig(count, vfx.hoard.tiers) + ':' + count + ':' + hoardAct + ':' +
+      hoardSig(count, vfx.hoard.tiers) + ':' + hoardAct + ':' +
       w + 'x' + h + ':' + vfx.hoard.stageScale + ':' + vfx.hoard.stageAlpha;
     if (sig === hoardSigLast) return;
     hoardSigLast = sig;
@@ -314,6 +314,6 @@ export function createStage(el, { vfx, script, onRespond, onOrphan, names, cfg, 
     hasBeatOpen: () => !!shownBeat || !!beatTimer,
 
     redrawHoard() { hoardSigLast = null; drawStageHoard(); },
-    setHoardPreview(countOrNull) { hoardPreviewCount = countOrNull; drawStageHoard(); },
+    setHoardPreview(countOrNull) { hoardPreviewCount = countOrNull; hoardSigLast = null; drawStageHoard(); },
   };
 }

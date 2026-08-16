@@ -71,7 +71,7 @@ export const NAME_DEFAULTS = Object.freeze({
     ministry: 'ANNEX WING', starwrights: 'TALLER LADDER',
   }),
   verbs: Object.freeze({
-    tiptoe: 'TIPTOE', readNote: 'READ A NOTE', journal: 'JOURNAL',
+    tiptoe: 'TIPTOE', readNote: 'READ A NOTE',
   }),
   tabs: Object.freeze({ tonight: 'tonight', log: 'the log', roost: 'the roost', sky: 'the sky' }),
   meters: Object.freeze({
