@@ -46,6 +46,13 @@ test('ambiguous match lists candidates instead of acting', () => {
   assert.match(r.reply, /which/i);
 });
 
+test('set falls back suite-wide when the active tab does not own the knob', () => {
+  const r = respond({ ...ctx('Script'), text: 'set sound tap to 0.5' });
+  assert.deepEqual(r.action, {
+    type: 'set', ovKey: 'vfx', path: ['sound', 'tap'], value: 0.5, tab: 'VFX' });
+  assert.match(r.reply, /VFX/);
+});
+
 test('code-change request yields a prompt package', () => {
   const r = respond({ ...ctx('Workshop'), text: 'add a slider for conveyor speed to this tab' });
   assert.equal(r.action.type, 'prompt');

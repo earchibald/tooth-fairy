@@ -102,6 +102,39 @@ ${JSON.stringify(ovs, null, 2)}
   return { filename: `dev-suite-request-${tab.toLowerCase().replace(/\s+/g, '-')}.md`, body };
 }
 
+// Shared set-resolution: given already-scored knob matches, either apply the
+// top match (identical value parsing for reset/double/halve/±%/absolute), ask
+// to disambiguate a tie, or ask for a value. `noteTab` (used by the
+// suite-wide fallback from tab scope) names the owning tab in the reply so
+// the user knows the knob was not on their active tab.
+function resolveSet(matches, { lower, isReset, isDouble, isHalve, val, live, noteTab }) {
+  const [best, second] = matches;
+  if (second && second.score === best.score) {
+    return { reply: 'Which one?\n' + matches.slice(0, 5)
+      .map((s) => '• ' + knobLine(s.k, live)).join('\n') };
+  }
+  const k = best.k;
+  const cur = getPath(live[k.ovKey], k.path);
+  let value;
+  if (isReset) value = k.def;
+  else if (isDouble) value = typeof cur === 'number' ? cur * 2 : cur;
+  else if (isHalve) value = typeof cur === 'number' ? cur / 2 : cur;
+  else if (val && val.pct && (UP_VERBS.test(lower) || DOWN_VERBS.test(lower))) {
+    const sign = DOWN_VERBS.test(lower) ? -1 : 1;
+    value = typeof cur === 'number' ? +(cur * (1 + sign * val.n / 100)).toPrecision(6) : cur;
+  } else if (val && (UP_VERBS.test(lower) || DOWN_VERBS.test(lower))) {
+    const sign = DOWN_VERBS.test(lower) ? -1 : 1;
+    value = typeof cur === 'number' ? cur + sign * val.n : cur;
+  } else if (val) value = val.n;
+  else return { reply: 'Give me a value: e.g. "set ' + fmtPath(k) + ' to 0.5", '
+    + '"raise it 20%", or "reset it". Current: ' + knobLine(k, live) };
+  const tabNote = noteTab ? `${k.tab} tab; ` : '';
+  return {
+    reply: `Setting ${fmtPath(k)} → ${JSON.stringify(value)} (${tabNote}was ${JSON.stringify(cur)}, default ${JSON.stringify(k.def)}).`,
+    action: { type: 'set', ovKey: k.ovKey, path: k.path, value, tab: k.tab },
+  };
+}
+
 export function respond({ text, scope, tab, packs, live, overrides }) {
   const effTab = scope === 'suite' ? null : tab;
   const lower = text.toLowerCase();
@@ -128,30 +161,18 @@ export function respond({ text, scope, tab, packs, live, overrides }) {
   }
 
   if (wantsSet && matches.length) {
-    const [best, second] = matches;
-    if (second && second.score === best.score) {
-      return { reply: 'Which one?\n' + matches.slice(0, 5)
-        .map((s) => '• ' + knobLine(s.k, live)).join('\n') };
+    return resolveSet(matches, { lower, isReset, isDouble, isHalve, val, live });
+  }
+
+  // Tab scope with no in-scope knob hit: an explicit set request may still
+  // name a knob owned by another tab (e.g. "set sound tap to 0.5" while the
+  // Script tab is active but the knob lives on VFX). Re-run suite-wide
+  // before giving up, so a clear single match still applies.
+  if (wantsSet && !matches.length && scope !== 'suite' && effTab) {
+    const suiteMatches = matchKnobs(text, packs, null);
+    if (suiteMatches.length) {
+      return resolveSet(suiteMatches, { lower, isReset, isDouble, isHalve, val, live, noteTab: true });
     }
-    const k = best.k;
-    const cur = getPath(live[k.ovKey], k.path);
-    let value;
-    if (isReset) value = k.def;
-    else if (isDouble) value = typeof cur === 'number' ? cur * 2 : cur;
-    else if (isHalve) value = typeof cur === 'number' ? cur / 2 : cur;
-    else if (val && val.pct && (UP_VERBS.test(lower) || DOWN_VERBS.test(lower))) {
-      const sign = DOWN_VERBS.test(lower) ? -1 : 1;
-      value = typeof cur === 'number' ? +(cur * (1 + sign * val.n / 100)).toPrecision(6) : cur;
-    } else if (val && (UP_VERBS.test(lower) || DOWN_VERBS.test(lower))) {
-      const sign = DOWN_VERBS.test(lower) ? -1 : 1;
-      value = typeof cur === 'number' ? cur + sign * val.n : cur;
-    } else if (val) value = val.n;
-    else return { reply: 'Give me a value: e.g. "set ' + fmtPath(k) + ' to 0.5", '
-      + '"raise it 20%", or "reset it". Current: ' + knobLine(k, live) };
-    return {
-      reply: `Setting ${fmtPath(k)} → ${JSON.stringify(value)} (was ${JSON.stringify(cur)}, default ${JSON.stringify(k.def)}).`,
-      action: { type: 'set', ovKey: k.ovKey, path: k.path, value, tab: k.tab },
-    };
   }
 
   // In suite scope, only a "set"-style request should resolve straight to a

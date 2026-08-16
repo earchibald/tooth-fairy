@@ -186,6 +186,9 @@ export function mountChat({ root, ctx, packs, dock }) {
   function build() {
     win = el('div', 'tfChatWin');
     win.dataset.testid = 'chat-window';
+    // ~10 history lines at open (190px log + ~173px chrome); the log has
+    // flex:1 inside this column, so height set here flows down into it.
+    win.style.height = '365px';
     const head = el('div', 'tfChatHead');
     for (const [id, label] of [['tab', 'Current tab'], ['suite', 'Dev Suite']]) {
       const b = el('button', 'devTab', label);
@@ -198,7 +201,6 @@ export function mountChat({ root, ctx, packs, dock }) {
     x.addEventListener('click', hide);
     head.appendChild(x);
     logEl = el('div', 'tfChatLog');
-    logEl.style.height = '190px';        // ~10 history lines to start
     const inBar = el('div', 'tfChatIn');
     inputEl = document.createElement('textarea');
     inputEl.rows = 3;
