@@ -45,6 +45,14 @@ export function shouldStartTextMarker(prevValue, newValue) {
   return prevValue === '' && newValue !== '';
 }
 
+// The seq counter after restoring queued entries from the store: never below
+// the session's own seqNext, and never below one past the highest seq among
+// restored entries (guards against id/seq collisions after a reload).
+export function nextSeq(sessionSeqNext, restoredEntries) {
+  if (!restoredEntries || !restoredEntries.length) return sessionSeqNext;
+  return Math.max(sessionSeqNext, ...restoredEntries.map((e) => e.seq + 1));
+}
+
 export function buildGameInfo(state, version) {
   return { version, seed: state.seed, act: state.act, town: state.town, tick: state.tick };
 }

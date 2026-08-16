@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {
   formatClockMs, formatWallClock, formatMarkerLine, entryIcon,
   formatEntryHeader, formatProgress, shouldStartTextMarker,
-  buildGameInfo, buildBundle,
+  buildGameInfo, buildBundle, nextSeq,
 } from '../js/playtest/panel-core.js';
 
 test('formatClockMs: mm:ss, zero-padded seconds', () => {
@@ -89,4 +89,21 @@ test('buildBundle: shape matches the plan\'s section-4 contract', () => {
 test('buildBundle: missing entries defaults to an empty array, not undefined', () => {
   const bundle = buildBundle({ sessionId: 's', startedAt: 1, endedAt: 2, game: {}, save: '', ua: '', viewport: {} });
   assert.deepEqual(bundle.entries, []);
+});
+
+test('nextSeq: no restored entries keeps the session\'s seqNext', () => {
+  assert.equal(nextSeq(5, []), 5);
+});
+
+test('nextSeq: restored entries whose seqs exceed sessionSeqNext win', () => {
+  assert.equal(nextSeq(0, [{ seq: 3 }, { seq: 7 }, { seq: 1 }]), 8);
+});
+
+test('nextSeq: restored entries below sessionSeqNext do not lower it', () => {
+  assert.equal(nextSeq(10, [{ seq: 1 }, { seq: 2 }]), 10);
+});
+
+test('nextSeq: empty restored array never produces -Infinity from a bare Math.max', () => {
+  assert.equal(nextSeq(0, []), 0);
+  assert.notEqual(nextSeq(0, []), -Infinity);
 });

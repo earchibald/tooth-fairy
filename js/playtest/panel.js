@@ -19,7 +19,7 @@ import { SUBMIT_ENV } from '../submit/env.js';
 import { zipFiles } from '../submit/zip.js';
 import {
   formatClockMs, formatEntryHeader, formatProgress,
-  shouldStartTextMarker, buildGameInfo, buildBundle,
+  shouldStartTextMarker, buildGameInfo, buildBundle, nextSeq,
 } from './panel-core.js';
 
 const PANEL_W = 'clamp(360px, 32vw, 460px)';
@@ -107,7 +107,7 @@ export function mountPlaytestPanel(ctx) {
   const recRow = el('div', 'ptRow ptRec');
   const recBtn = el('button', 'ptBtn', n.record);
   recBtn.dataset.testid = 'pt-rec';
-  const recTime = el('span', 'ptRecTime', '0:00');
+  const recTime = el('span', 'ptRecTime', formatClockMs(0));
   recTime.dataset.testid = 'pt-rec-time';
   const recCancel = el('button', 'ptBtn warn', n.cancel);
   recCancel.dataset.testid = 'pt-rec-cancel';
@@ -121,7 +121,7 @@ export function mountPlaytestPanel(ctx) {
 
   // ---- compose: text ----
   const textBox = el('div', 'ptCompose');
-  textBox.appendChild(el('h3', null, 'text'));
+  textBox.appendChild(el('h3', null, n.textHeading));
   const textArea = document.createElement('textarea');
   textArea.placeholder = n.textPlaceholder;
   textArea.dataset.testid = 'pt-text';
@@ -233,8 +233,10 @@ export function mountPlaytestPanel(ctx) {
     if (pendingDelete.has(entry.id)) {
       itemFoot.appendChild(el('span', null, n.deleteConfirm));
       const yes = el('button', 'ptBtn warn', n.deleteYes);
+      yes.dataset.testid = 'pt-del-yes-' + entry.id;
       yes.addEventListener('click', () => deleteEntry(entry.id));
       const no = el('button', 'ptBtn', n.deleteNo);
+      no.dataset.testid = 'pt-del-no-' + entry.id;
       no.addEventListener('click', () => {
         pendingDelete.delete(entry.id);
         renderDeleteControls(itemFoot, entry, li);
@@ -307,7 +309,7 @@ export function mountPlaytestPanel(ctx) {
   let recTimer = null;
   function stopRecTimer() {
     if (recTimer) { clearInterval(recTimer); recTimer = null; }
-    recTime.textContent = '0:00';
+    recTime.textContent = formatClockMs(0);
   }
 
   recBtn.addEventListener('click', async () => {
@@ -434,7 +436,8 @@ export function mountPlaytestPanel(ctx) {
       entries.push(entry);
       queue.appendChild(renderItem(entry));
     }
-    if (restored.length) seq = Math.max(seq, ...restored.map((e) => e.seq + 1));
+    seq = nextSeq(seq, restored);
+    if (restored.length) queue.scrollTop = queue.scrollHeight;
     refreshMeta();
     textSubmit.disabled = false;
     if (micAvailable) recBtn.disabled = false;
