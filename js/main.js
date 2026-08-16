@@ -309,6 +309,9 @@ if (DEV) {
 // ---- autopilot gate ----
 if (AUTOPILOT) {
   import('./dev/autopilot.js')
-    .then((m) => m.startAutopilot())
+    .then((m) => m.startAutopilot({
+      policyName: params.get('policy') || 'steady',
+      rngSeed: Number(params.get('rngSeed')) || 1,
+    }))
     .catch((err) => console.warn('[dev] autopilot failed to load', err));
 }

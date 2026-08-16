@@ -5,18 +5,25 @@
 
 import { createObserver } from './observer.js';
 import { fmt } from '../engine/math.js';
+import { steadyPolicy, chaosPolicy, wrongPolicy, mulberry32 } from './policies.js';
 
 const POLL_MS = 50; // At high ?speed= the poll interval IS the player's reaction time in game-seconds, so it must stay small.
 const TAPS_PER_POLL = 4; // 40 pointerdown events/s — deliberately over the engine cap
 
-export function startAutopilot({ maxMinutes = 10 } = {}) {
+export function startAutopilot({ maxMinutes = 10, policyName = 'steady', rngSeed = 1 } = {}) {
   const game = window.game;
   const { cfg, script } = game;
+  const policy = policyName === 'chaos' ? chaosPolicy(rngSeed)
+    : policyName === 'wrong' ? wrongPolicy() : steadyPolicy();
+  // DOM-side randomness (roost-button coin flips) gets its own stream so it
+  // cannot desync the policy's decision sequence from a headless run.
+  const domRng = mulberry32(rngSeed + 1);
   const obs = createObserver(cfg, script);
   const domIssues = [];
   const consoleErrors = [];
   const startedAt = performance.now();
   let polls = 0;
+  let beatWait = -1;
 
   const origError = console.error;
   console.error = (...args) => {
@@ -77,7 +84,7 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
     window.removeEventListener('error', onWindowError);
     const { violations, stats } = obs.report();
     const minutes = (performance.now() - startedAt) / 60000;
-    window.__autopilot = { done: true, reason, minutes, polls,
+    window.__autopilot = { done: true, reason, minutes, polls, policy: policy.name,
       violations, domIssues, consoleErrors, stats };
     const bad = violations.length + domIssues.length + consoleErrors.length;
     console.log('[autopilot] ' + reason + ' after ' + minutes.toFixed(1) + ' min, tick ' +
@@ -96,26 +103,46 @@ export function startAutopilot({ maxMinutes = 10 } = {}) {
     // happens before the beat is dismissed.
     if (polls % 10 === 0) domCheck(state);
 
-    // Story first — the engine pauses while a beat is open.
+    // Story first — the engine pauses while a beat is open. Chaos idles a
+    // few polls first, like a reader; steady and wrong answer immediately.
     const beatBtn = $('.beatCard.show [data-testid="beat-response"]');
-    if (beatBtn) { click(beatBtn); return; }
+    if (beatBtn) {
+      if (beatWait < 0) beatWait = policy.beatDelayTicks();
+      if (beatWait > 0) { beatWait--; return; }
+      beatWait = -1;
+      click(beatBtn); return;
+    }
 
     // Dawn rest: the one thing a real player does by walking away.
     if (state.nightShown && state.nightPhase === 'dawn') {
       game.debug.offline(cfg.NIGHT.MIN_GAP_S + 60);
       return;
     }
-    if (state.nightShown && state.contractPicked === null) click($('[data-testid^="job-"]'));
+    if (state.nightShown && state.contractPicked === null && state.contractBoard.length) {
+      const board = state.contractBoard.map((id) => game.contracts.pool.find((c) => c.id === id));
+      click($('[data-testid="job-' + policy.pickContract(board) + '"]') || $('[data-testid^="job-"]'));
+    }
 
     const tapBtn = $('[data-testid="tap"]');
     if (tapBtn) {
-      for (let i = 0; i < TAPS_PER_POLL; i++) {
+      // Steady keeps the historical 4/poll burst (the engine cap is under
+      // test); other policies bring their own appetite.
+      const taps = policy.name === 'steady' ? TAPS_PER_POLL : policy.tapsPerTick(state);
+      for (let i = 0; i < taps; i++) {
         tapBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       }
     }
-    if (state.stir > 45) click($('[data-testid="tiptoe"]')); // Threshold sits far below the wake point because the autopilot senses stir with up to a poll of lag.
-    if (state.notes > 0) click($('[data-testid="log-read-note"]'));
-    for (const b of document.querySelectorAll('[data-testid="roost"] button')) click(b);
+    // Steady's threshold sits far below the policy's 75 because the
+    // autopilot senses stir with up to a poll of lag.
+    if (policy.name === 'steady' ? state.stir > 45 : policy.shouldTiptoe(state)) {
+      click($('[data-testid="tiptoe"]'));
+    }
+    if (state.notes > 0 && policy.shouldReadNote(state)) click($('[data-testid="log-read-note"]'));
+    for (const b of document.querySelectorAll('[data-testid="roost"] button')) {
+      if (policy.name === 'wrong' && b.dataset.testid === 'buy-loom') continue;
+      if (policy.name === 'chaos' && domRng() < 0.5) continue;
+      click(b);
+    }
 
     if (polls % 50 === 0) {
       const tabs = [...document.querySelectorAll('[data-testid^="tab-"]')];
