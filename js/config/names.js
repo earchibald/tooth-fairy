@@ -109,6 +109,8 @@ export const NAME_DEFAULTS = Object.freeze({
     session: 'session ',
     entries: ' entries',
     submit: 'submit session',
+    voiceHeading: 'voice',
+    textHeading: 'text',
     record: '● record',
     stopSubmit: '■ stop & submit',
     cancel: 'cancel',

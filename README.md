@@ -81,6 +81,52 @@ The Pacing tab runs the real engine headless with a competent-not-optimal
 bot and reports act timing, reveal cadence, wakes, and beat reachability —
 the same numbers the test suite asserts.
 
+## Playtest panel
+
+A tester queues text and voice notes during live play, each stamped with a gameplay marker,
+then submits the session for analysis afterward. `?playtest=1` turns it on; it is never in the
+shipped player bundle.
+
+| Fact | Value |
+|---|---|
+| Turn on | `http://localhost:8123/?playtest=1` |
+| Position | Fixed column right of the game, desktop only (≥1100px wide) |
+| Does it pause the game? | No — the tick loop keeps running while a tester talks or types |
+| Entry storage | IndexedDB `tf-playtest`, survives a reload |
+| Submit, no infra deployed | Downloads a zip (`<sessionId>.zip`: the events jsonl plus every voice recording) |
+| Submit, infra deployed | Uploads straight to S3 through a token-gated broker; no AWS keys in the browser |
+| Analyze afterward | `.claude/skills/analyze-playtest` — locate, transcribe, merge, triage, write a report |
+
+### Controls
+
+| Control | What it does |
+|---|---|
+| `● record` / `■ stop & submit` | Records a voice note. Marks the start on record, the end on stop. |
+| `cancel` (while recording) | Discards the clip and releases the microphone. Nothing is queued. |
+| Text box + `submit` | Queues a typed note. Marks the start on the first keystroke, the end on submit. |
+| Queue entry | Editable (text) or replayable (voice); `delete` asks to confirm — shift-click skips the confirm. |
+| `submit session` (header or footer) | Uploads or downloads everything queued so far. Entries stay in IndexedDB either way. |
+
+Every queued entry carries a 180-second rolling trail of gameplay markers sampled every 2
+seconds, in addition to its start/end marker. A tester describes something **after** it
+happens, so the end marker is when they stopped talking, not when the thing happened — the
+trail is what lets an analyst find the real moment. See the `analyze-playtest` skill for how
+this gets used.
+
+### The upload path
+
+The S3 path needs `submission-broker/` provisioned first — a small, reusable Terraform module
+plus Lambda that hands the browser a one-shot, token-gated upload grant. This has **deliberately
+not been run**: applying it creates a real S3 bucket and a publicly reachable Function URL,
+which is the owner's call, not something scripted for you. Until then, `submit session` always
+downloads the zip.
+
+To analyze a submitted session, see `.claude/skills/analyze-playtest/SKILL.md`, or run its
+three scripts directly: `scripts/submissions.mjs` (list/pull/rm from S3), `scripts/transcribe.mjs`
+(Whisper transcription of voice notes), and `scripts/playtest-merge.mjs` (merge into a
+markdown report). Full design in
+`docs/superpowers/specs/2026-08-16-playtest-feedback-panel.md`.
+
 ## Design notes
 
 The design spec lives at `docs/superpowers/specs/2026-08-13-tooth-fairy-design.md`.

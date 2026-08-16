@@ -97,7 +97,10 @@ Blobs go straight into `entries` — IndexedDB stores `Blob` natively, so no chu
 for a per-entry recording.
 
 ```js
-export function createStore()   // -> IdbStore, or MemoryStore when indexedDB is unavailable
+export async function createStore(deps)   // deps.indexedDB injected; -> IdbStore, or MemoryStore when it's absent or fails to open
+// CORRECTION (task 3): createStore is async and takes deps, not a bare synchronous call —
+// opening an IdbStore is itself async, and deps.indexedDB is injected rather than read off
+// the global so the module stays node-testable.
 // { openSession(nowMs, rand), putEntry(e), deleteEntry(id), allEntries(), clear() }
 ```
 
@@ -139,7 +142,7 @@ minimal consumer.
 ```
 js/submit/
   README.md
-  client.js     createBrokerSink(env), createFileSink(deps), pickSink(env, deps)
+  client.js     createBrokerSink(env, deps), createFileSink(deps), pickSink(env, deps)
   zip.js        STORE-only zip writer
   env.js        committed inactive stub
 ```
@@ -150,7 +153,10 @@ A **submission** is the package's one input type — deliberately generic, with 
 { sessionId, files: [ { name, blob, contentType } ] }
 ```
 
-`createBrokerSink(env)` — port of `alignment-issues/game/js/telemetry/sinks.js:139-197`.
+`createBrokerSink(env, deps)` — port of `alignment-issues/game/js/telemetry/sinks.js:139-197`.
+CORRECTION (task 3): `deps.fetch` is a required second argument (falls back to the global
+`fetch` when present), matching the constraints doc's rule that both sinks take their side
+effects through injected deps.
 Per file: POST `{token, sessionId, filename, size, contentType}` to `env.brokerUrl`, receive
 `{url, fields}`, put them plus the file into `FormData`, POST to S3. Keep `baseType()` — it
 strips `;codecs=opus`, without which the broker answers 415. No retry loop; a failure leaves
@@ -432,11 +438,15 @@ window: t=612s … t=630s · act 2 · night 7 · teeth 1.2K → 1.4K
 
 <details><summary>trail (180 s before submit)</summary>
 
-| t | act | night | teeth | rate | belief | stir |
-|---|---|---|---|---|---|---|
+| t | act | night | teeth | belief | stir |
+|---|---|---|---|---|---|
 ...
 </details>
 ```
+
+CORRECTION (task 6): the `rate` column above was illustrative and never matched a real field.
+`captureMarker` (`js/playtest/marker.js`) has no `rate`; the delivered trail table in
+`scripts/playtest-merge.mjs` uses the real marker fields — `t, act, night, teeth, belief, stir`.
 
 The header of every report must carry this warning, because it is the whole point of the
 trail:

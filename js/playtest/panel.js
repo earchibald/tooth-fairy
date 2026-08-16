@@ -103,7 +103,7 @@ export function mountPlaytestPanel(ctx) {
 
   // ---- compose: voice ----
   const voiceBox = el('div', 'ptCompose');
-  voiceBox.appendChild(el('h3', null, 'voice'));
+  voiceBox.appendChild(el('h3', null, n.voiceHeading));
   const recRow = el('div', 'ptRow ptRec');
   const recBtn = el('button', 'ptBtn', n.record);
   recBtn.dataset.testid = 'pt-rec';
