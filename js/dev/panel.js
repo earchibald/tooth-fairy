@@ -747,6 +747,12 @@ function tabState(body, ctx) {
   const b10 = el('button', null, 'grant 10★');
   b10.addEventListener('click', () => ctx.dispatch('devGrantStars', { n: 10 }));
   bar1.appendChild(b10);
+  const auto = el('button', null, 'start autopilot');
+  auto.addEventListener('click', () => {
+    import('./autopilot.js').then((m) => m.startAutopilot());
+    auto.disabled = true;
+  });
+  bar1.appendChild(auto);
   body.append(el('h3', null, 'grant'), bar1);
 
   body.appendChild(el('h3', null, 'meters'));

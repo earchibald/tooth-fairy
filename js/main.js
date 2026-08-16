@@ -14,7 +14,8 @@ import { initSound, play } from './ui/sound.js';
 
 const params = new URLSearchParams(location.search);
 const SPEED = Math.max(0.1, Math.min(1000, Number(params.get('speed')) || 1));
-const DEV = params.get('dev') === '1' ||
+const AUTOPILOT = params.get('autopilot') === '1';
+const DEV = params.get('dev') === '1' || AUTOPILOT ||
   ['localhost', '127.0.0.1'].includes(location.hostname);
 
 function loadOverrides(key) {
@@ -32,7 +33,7 @@ initSound(vfx);
 // ---- state ----
 const box = { state: null };
 let savedAt = null;
-const savedRaw = localStorage.getItem('tf-save');
+const savedRaw = params.get('fresh') === '1' ? null : localStorage.getItem('tf-save');
 if (savedRaw) {
   const parsed = deserialize(savedRaw);
   if (parsed) { box.state = parsed.state; savedAt = parsed.savedAt; }
@@ -303,4 +304,11 @@ if (DEV) {
   import('./dev/panel.js')
     .then((m) => m.mountDevPanel({ app, box, cfg, names, vfx, script, dispatch, ui, save }))
     .catch((err) => console.warn('[dev] panel failed to load', err));
+}
+
+// ---- autopilot gate ----
+if (AUTOPILOT) {
+  import('./dev/autopilot.js')
+    .then((m) => m.startAutopilot())
+    .catch((err) => console.warn('[dev] autopilot failed to load', err));
 }
