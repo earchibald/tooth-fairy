@@ -8,8 +8,11 @@
 // whose sessionIdPattern could match a string containing '/', '\', or
 // '..' is rejected here, at compile time — a consumer cannot configure a
 // path-traversing schema, only supply one that is safe by construction.
-// The same applies to `prefix`, which is concatenated straight into the
-// filename regex.
+// `prefix` is a literal string, never a pattern: assertSafePrefix rejects
+// path separators and '..' as defence in depth, and filenameRegexFor
+// regex-escapes it (like sessionId) before interpolating it into the
+// filename regex, so any regex metacharacters it contains are matched
+// literally rather than treated as wildcards.
 
 const N_TOKEN = '{n}';
 
@@ -150,5 +153,5 @@ export function compileSchema(doc) {
 // sessionIdPattern allowed, which compileSchema already verified are
 // traversal-safe).
 export function filenameRegexFor(schema, sessionId, fileEntry) {
-  return new RegExp(`^${schema.prefix}-${escapeRegexLiteral(sessionId)}${fileEntry.suffixPattern}$`);
+  return new RegExp(`^${escapeRegexLiteral(schema.prefix)}-${escapeRegexLiteral(sessionId)}${fileEntry.suffixPattern}$`);
 }

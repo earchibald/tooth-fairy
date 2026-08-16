@@ -79,6 +79,25 @@ test('compileSchema: rejects a prefix containing a path separator', () => {
   assert.throws(() => compileSchema(baseDoc({ prefix: '../etc' })), /prefix/);
 });
 
+test('filenameRegexFor: a prefix containing "." is treated as a literal, not a wildcard', () => {
+  const schema = compileSchema(baseDoc({ prefix: 'a.c' }));
+  const id = '1786061130678-nx1j';
+  const re = filenameRegexFor(schema, id, schema.files[0]);
+  // Must NOT match a filename where '.' matched '/' (the wildcard bug).
+  assert.equal(re.test(`a/c-${id}.jsonl`), false);
+  // Must match the literal prefix.
+  assert.equal(re.test(`a.c-${id}.jsonl`), true);
+});
+
+test('filenameRegexFor: a prefix with other regex metacharacters is treated as a literal', () => {
+  const schema = compileSchema(baseDoc({ prefix: 'client(dev)+' }));
+  const id = '1786061130678-nx1j';
+  const re = filenameRegexFor(schema, id, schema.files[0]);
+  assert.equal(re.test(`client(dev)+-${id}.jsonl`), true);
+  assert.equal(re.test(`clientdevdev-${id}.jsonl`), false);
+  assert.equal(re.test(`clientXdevY-${id}.jsonl`), false);
+});
+
 test('compileSchema: rejects malformed documents', () => {
   assert.throws(() => compileSchema(null));
   assert.throws(() => compileSchema({}));
