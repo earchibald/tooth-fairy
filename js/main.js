@@ -15,7 +15,8 @@ import { initSound, play } from './ui/sound.js';
 const params = new URLSearchParams(location.search);
 const SPEED = Math.max(0.1, Math.min(1000, Number(params.get('speed')) || 1));
 const AUTOPILOT = params.get('autopilot') === '1';
-const DEV = params.get('dev') === '1' || AUTOPILOT ||
+const EMBED = typeof window !== 'undefined' && !!window.TF_EMBED;
+const DEV = EMBED || params.get('dev') === '1' || AUTOPILOT ||
   ['localhost', '127.0.0.1'].includes(location.hostname);
 
 function loadOverrides(key) {
@@ -248,38 +249,40 @@ function cycle(d) {
   const i = order.indexOf(ui.tabs.active());
   ui.tabs.show(order[(i + d + order.length) % order.length]);
 }
-document.addEventListener('keydown', (e) => {
-  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
-  const t = e.target;
-  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
-  // While an overlay is up, only closing keys work — a hidden beat response
-  // or a purchase must never fire behind a dialog.
-  if (ui.overlays.anyOpen()) {
-    if (e.key === 'Escape') ui.overlays.closeAll();
-    return;
-  }
-  // A story response requires deliberate input: while a beat card is up,
-  // the global SPACE/Enter shortcuts are swallowed so they can neither
-  // dismiss it nor tap through. Native activation of the focused response
-  // button stays — keyboard players respond by tabbing to it.
-  if (document.querySelector('.beatCard.show') && (e.key === ' ' || e.key === 'Enter')) {
-    if (!(t && t.closest && t.closest('[data-testid="beat-response"]'))) e.preventDefault();
-    return;
-  }
-  switch (e.key) {
-    case ' ': case 't': e.preventDefault(); doTap(); break;
-    case 's': dispatch('tiptoe'); break;
-    case 'n': dispatch('readNote'); break;
-    case 'j': ui.tabs.show('log'); break;
-    case 'Escape': ui.overlays.closeAll(); break;
-    case '[': cycle(-1); break;
-    case ']': cycle(1); break;
-    case 'ArrowLeft': e.preventDefault(); cycle(-1); break;
-    case 'ArrowRight': e.preventDefault(); cycle(1); break;
-    default:
-      if (e.key >= '1' && e.key <= '9') ui.roost.pressKey(Number(e.key));
-  }
-});
+if (!EMBED) {
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+    // While an overlay is up, only closing keys work — a hidden beat response
+    // or a purchase must never fire behind a dialog.
+    if (ui.overlays.anyOpen()) {
+      if (e.key === 'Escape') ui.overlays.closeAll();
+      return;
+    }
+    // A story response requires deliberate input: while a beat card is up,
+    // the global SPACE/Enter shortcuts are swallowed so they can neither
+    // dismiss it nor tap through. Native activation of the focused response
+    // button stays — keyboard players respond by tabbing to it.
+    if (document.querySelector('.beatCard.show') && (e.key === ' ' || e.key === 'Enter')) {
+      if (!(t && t.closest && t.closest('[data-testid="beat-response"]'))) e.preventDefault();
+      return;
+    }
+    switch (e.key) {
+      case ' ': case 't': e.preventDefault(); doTap(); break;
+      case 's': dispatch('tiptoe'); break;
+      case 'n': dispatch('readNote'); break;
+      case 'j': ui.tabs.show('log'); break;
+      case 'Escape': ui.overlays.closeAll(); break;
+      case '[': cycle(-1); break;
+      case ']': cycle(1); break;
+      case 'ArrowLeft': e.preventDefault(); cycle(-1); break;
+      case 'ArrowRight': e.preventDefault(); cycle(1); break;
+      default:
+        if (e.key >= '1' && e.key <= '9') ui.roost.pressKey(Number(e.key));
+    }
+  });
+}
 
 // ---- debug API ----
 window.game = {
@@ -300,7 +303,11 @@ window.game = {
 };
 
 // ---- dev panel gate ----
-if (DEV) {
+if (EMBED) {
+  import('./embed/boot.js')
+    .then((m) => m.bootEmbed({ app, box, cfg, names, vfx, script, contracts, dispatch, ui, save }))
+    .catch((err) => console.warn('[embed] boot failed', err));
+} else if (DEV) {
   import('./dev/panel.js')
     .then((m) => m.mountDevPanel({ app, box, cfg, names, vfx, script, dispatch, ui, save }))
     .catch((err) => console.warn('[dev] panel failed to load', err));

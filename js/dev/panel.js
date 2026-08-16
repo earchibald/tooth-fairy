@@ -10,58 +10,28 @@ import { SCRIPT_DEFAULTS } from '../config/script.js';
 import { runBot } from './bot.js';
 import { fmt } from '../engine/math.js';
 import { play } from '../ui/sound.js';
-
-const OV = {
-  constants: 'tf-ov-constants',
-  names: 'tf-ov-names',
-  vfx: 'tf-ov-vfx',
-  script: 'tf-ov-script',
-};
-
-function loadOv(key) {
-  try { return JSON.parse(localStorage.getItem(OV[key]) || 'null') || {}; }
-  catch { return {}; }
-}
-function saveOv(key, obj) {
-  if (obj && Object.keys(obj).length) localStorage.setItem(OV[key], JSON.stringify(obj));
-  else localStorage.removeItem(OV[key]);
-}
-function setPath(obj, path, value) {
-  let node = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    if (typeof node[path[i]] !== 'object' || node[path[i]] === null) node[path[i]] = {};
-    node = node[path[i]];
-  }
-  node[path[path.length - 1]] = value;
-}
-function deletePath(obj, path) {
-  const parents = [obj];
-  let node = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    node = node && node[path[i]];
-    parents.push(node);
-  }
-  if (!node) return;
-  delete node[path[path.length - 1]];
-  for (let i = parents.length - 1; i > 0; i--) {
-    const parent = parents[i - 1];
-    const key = path[i - 1];
-    if (parent[key] && typeof parent[key] === 'object' && !Object.keys(parent[key]).length) {
-      delete parent[key];
-    }
-  }
-}
-function getPath(obj, path) {
-  let node = obj;
-  for (const k of path) { if (node == null) return undefined; node = node[k]; }
-  return node;
-}
+import { OV, loadOv, saveOv, setPath, deletePath, getPath, applyKnob } from './ovstore.js';
+import { WORKSHOP_KNOBS, HOARD_SHARED_KNOBS } from './knob-ranges.js';
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
   if (text != null) node.textContent = text;
   return node;
+}
+
+// Embed hotkeys: pure mapping so it can be tested headless. Typing fields
+// and modifier chords (other than the Shift that makes a digit) never steal.
+export function devTabForKey(e, tabNames, active) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.targetTag)) return null;
+  if (e.ctrlKey || e.metaKey || e.altKey) return null;
+  const m = /^Digit([1-9])$/.exec(e.code || '');
+  if (e.shiftKey && m) return tabNames[Number(m[1]) - 1] || null;
+  if (e.shiftKey) return null;
+  const i = tabNames.indexOf(active);
+  if (e.key === ']') return tabNames[(i + 1) % tabNames.length];
+  if (e.key === '[') return tabNames[(i - 1 + tabNames.length) % tabNames.length];
+  return null;
 }
 
 const CSS = `
@@ -148,6 +118,33 @@ export function mountDevPanel(ctx) {
   });
 }
 
+function buildSuite(ctx, { panel, head, body, docked }) {
+  const tabs = {
+    Workshop: tabWorkshop, Hoard: tabHoard, Script: tabScript, Balance: tabBalance,
+    Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
+  };
+  let active = null;
+  let onHide = null;
+  for (const name of Object.keys(tabs)) {
+    const btn = el('button', 'devTab', name);
+    btn.dataset.testid = 'dev-tab-' + name.toLowerCase();
+    btn.addEventListener('click', () => show(name));
+    head.appendChild(btn);
+  }
+  function stopHide() { if (onHide) { onHide(); onHide = null; } }
+  function show(name) {
+    stopHide();
+    active = name;
+    for (const btn of head.querySelectorAll('.devTab')) {
+      btn.classList.toggle('on', btn.textContent === name);
+    }
+    while (body.firstChild) body.removeChild(body.firstChild);
+    if (!docked) panel.classList.toggle('devPanel--drawer', name === 'Workshop' || name === 'Hoard');
+    onHide = tabs[name](body, ctx) || null;
+  }
+  return { tabs, show, stopHide, activeTab: () => active };
+}
+
 function buildPanel(ctx) {
   const panel = el('div', 'devPanel');
   panel.hidden = true;
@@ -157,52 +154,54 @@ function buildPanel(ctx) {
   panel.append(head, body);
   document.body.appendChild(panel);
 
-  const tabs = {
-    Workshop: tabWorkshop, Hoard: tabHoard, Script: tabScript, Balance: tabBalance,
-    Names: tabNames, VFX: tabVfx, State: tabState, Pacing: tabPacing,
-  };
-  const built = {};
-  let active = null;
-  let onHide = null;
+  const suite = buildSuite(ctx, { panel, head, body, docked: false });
 
-  for (const name of Object.keys(tabs)) {
-    const btn = el('button', 'devTab', name);
-    btn.dataset.testid = 'dev-tab-' + name.toLowerCase();
-    btn.addEventListener('click', () => show(name));
-    head.appendChild(btn);
-  }
   const close = el('button', 'x', '✕');
-  close.addEventListener('click', () => { panel.hidden = true; stopHide(); });
+  close.addEventListener('click', () => { panel.hidden = true; suite.stopHide(); });
   head.appendChild(close);
 
-  function stopHide() { if (onHide) { onHide(); onHide = null; } }
-
-  function show(name) {
-    stopHide();
-    active = name;
-    for (const btn of head.querySelectorAll('.devTab')) {
-      btn.classList.toggle('on', btn.textContent === name);
-    }
-    while (body.firstChild) body.removeChild(body.firstChild);
-    panel.classList.toggle('devPanel--drawer', name === 'Workshop' || name === 'Hoard');
-    onHide = tabs[name](body, ctx) || null;
-  }
-
-  show('Workshop');
+  suite.show('Workshop');
   return {
     toggle() {
       panel.hidden = !panel.hidden;
-      if (!panel.hidden && active) show(active);
-      else stopHide();
+      if (!panel.hidden && suite.activeTab()) suite.show(suite.activeTab());
+      else suite.stopHide();
     },
   };
 }
 
+export function mountDevSuiteDocked(ctx, host) {
+  const style = document.createElement('style');
+  style.textContent = CSS + DOCK_CSS;
+  document.head.appendChild(style);
+  const panel = el('div', 'devPanel devPanel--docked');
+  panel.dataset.testid = 'dev-panel';
+  const head = el('div', 'devHead');
+  const body = el('div', 'devBody');
+  panel.append(head, body);
+  host.appendChild(panel);
+  const suite = buildSuite(ctx, { panel, head, body, docked: true });
+  const tabNames = Object.keys(suite.tabs);
+  document.addEventListener('keydown', (e) => {
+    const next = devTabForKey({
+      code: e.code, key: e.key, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey, altKey: e.altKey,
+      targetTag: e.target && e.target.tagName || '',
+    }, tabNames, suite.activeTab());
+    if (next) { e.preventDefault(); suite.show(next); }
+  });
+  suite.show('Workshop');
+  return { activeTab: suite.activeTab, show: suite.show, tabNames };
+}
+
+const DOCK_CSS = `
+.devPanel--docked { position: static; inset: auto; height: 100%; z-index: auto; }
+.devPanel--docked .devHead .x { display: none; }
+`;
+
 // ---------- shared: leaf-walking knob rows ----------
 
 function knobRows(body, { defaults, live, ovKey, kind }) {
-  const ov = loadOv(ovKey);
-
   function makeRow(section, path, defVal, inArray) {
     const row = el('div', 'devRow');
     const label = el('span', 'path', path.join('.'));
@@ -222,33 +221,11 @@ function knobRows(body, { defaults, live, ovKey, kind }) {
 
     function apply(raw) {
       let value = raw;
-      if (isNum) {
-        value = Number(raw);
-        // Reject, never clamp: a clamped value is a lie about what you
-        // applied. An emptied field is a rejection, not a zero, and a
-        // positive default never accepts zero or less (a 0 tick divisor
-        // once froze the whole tab).
-        if (String(raw).trim() === '' || !Number.isFinite(value) ||
-            (defVal > 0 && value <= 0)) {
-          input.classList.add('bad');
-          return;
-        }
-      }
+      if (isNum) value = Number(raw);
+      if (isNum && String(raw).trim() === '') { input.classList.add('bad'); return; }
+      const r = applyKnob({ defaults, live, ovKey, path, value });
+      if (!r.ok) { input.classList.add('bad'); return; }
       input.classList.remove('bad');
-      setPath(live, path, value);
-      if (inArray) {
-        // Array overrides only merge wholesale — store the entire live array.
-        const parent = path.slice(0, -1);
-        const liveArr = getPath(live, parent);
-        const defArr = getPath(defaults, parent);
-        if (JSON.stringify(liveArr) === JSON.stringify(defArr)) deletePath(ov, parent);
-        else setPath(ov, parent, liveArr.slice());
-      } else if (value === defVal) {
-        deletePath(ov, path);
-      } else {
-        setPath(ov, path, value);
-      }
-      saveOv(ovKey, ov);
       row.classList.toggle('changed', value !== defVal);
     }
     input.addEventListener('input', () => apply(input.value));
@@ -313,50 +290,9 @@ function ovBar(body, ctx, note) {
 // The juice studio: tune the tap button and the banner live, preview
 // without playing, then save the liked values into the repo and release.
 
-const WORKSHOP_KNOBS = [
-  { title: 'tap pop', preview: 'tap', rows: [
-    { path: ['juice', 'tapPop', 'scale'], min: 0.9, max: 1.8, step: 0.01 },
-    { path: ['juice', 'tapPop', 'ms'], min: 40, max: 500, step: 5 },
-  ] },
-  { title: 'tap glow', preview: 'tap', rows: [
-    { path: ['juice', 'tapGlow', 'size'], min: 0, max: 60, step: 1 },
-    { path: ['juice', 'tapGlow', 'alpha'], min: 0, max: 1, step: 0.01 },
-    { path: ['juice', 'tapGlow', 'ms'], min: 60, max: 1200, step: 10 },
-  ] },
-  { title: 'tap sparks', preview: 'tap', rows: [
-    { path: ['juice', 'tapSparks', 'count'], min: 0, max: 40, step: 1 },
-    { path: ['juice', 'tapSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
-    { path: ['juice', 'tapSparks', 'spreadPx'], min: 6, max: 120, step: 2 },
-    { path: ['juice', 'tapSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
-  ] },
-  { title: 'incoming teeth', preview: 'flowShort', rows: [
-    { path: ['juice', 'inbound', 'glowSize'], min: 0, max: 40, step: 1 },
-    { path: ['juice', 'inbound', 'glowAlpha'], min: 0, max: 1, step: 0.01 },
-    { path: ['juice', 'inbound', 'trailPerS'], min: 0, max: 60, step: 1 },
-    { path: ['juice', 'inbound', 'trailLife'], min: 100, max: 2000, step: 20 },
-  ] },
-  { title: 'landing', preview: 'flowShort', rows: [
-    { path: ['juice', 'landSparks', 'count'], min: 0, max: 40, step: 1 },
-    { path: ['juice', 'landSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
-    { path: ['juice', 'landSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
-  ] },
-  { title: 'powerup sweep', preview: 'buy', rows: [
-    { path: ['juice', 'buySweep', 'alpha'], min: 0, max: 1, step: 0.01 },
-    { path: ['juice', 'buySweep', 'ms'], min: 200, max: 2500, step: 50 },
-  ] },
-  { title: 'scale ramp', preview: 'flowShort', rows: [
-    { path: ['juice', 'ramp', 'rateLo'], min: 1, max: 10000, step: 1 },
-    { path: ['juice', 'ramp', 'rateHi'], min: 1e6, max: 1e12, step: 1e6 },
-    { path: ['juice', 'ramp', 'sizeHi'], min: 1, max: 4, step: 0.05 },
-    { path: ['juice', 'ramp', 'glowHi'], min: 1, max: 6, step: 0.05 },
-    { path: ['juice', 'ramp', 'trailHi'], min: 1, max: 8, step: 0.05 },
-    { path: ['juice', 'ramp', 'scrollHi'], min: 1, max: 10, step: 0.1 },
-  ] },
-];
-
 // One live range-slider row: writes through to the live vfx object AND the
 // tf-ov-vfx override layer, exactly like the Workshop's original rows.
-function sliderRow(body, ctx, ov, knob, onChange) {
+function sliderRow(body, ctx, knob, onChange) {
   const defVal = getPath(VFX_DEFAULTS, knob.path);
   const row = el('div', 'devRow');
   row.appendChild(el('span', 'path', knob.path[knob.path.length - 1]));
@@ -373,10 +309,18 @@ function sliderRow(body, ctx, ov, knob, onChange) {
   row.append(input, val, def, reset);
   row.classList.toggle('changed', current !== defVal);
   function apply(value) {
-    setPath(ctx.vfx, knob.path, value);
-    if (value === defVal) deletePath(ov, knob.path);
-    else setPath(ov, knob.path, value);
-    saveOv('vfx', ov);
+    const r = applyKnob({
+      defaults: VFX_DEFAULTS, live: ctx.vfx, ovKey: 'vfx', path: knob.path, value, min: knob.min,
+    });
+    if (!r.ok) {
+      // Can't show a red border on a range input the way knobRows does for
+      // text fields — snap the slider and readout back to the live value
+      // instead of pretending the rejected value took.
+      const liveVal = getPath(ctx.vfx, knob.path);
+      input.value = String(liveVal);
+      val.textContent = String(liveVal);
+      return;
+    }
     val.textContent = String(value);
     row.classList.toggle('changed', value !== defVal);
     if (onChange) onChange();
@@ -483,11 +427,10 @@ function tabWorkshop(body, ctx) {
       else ACTIONS[key].run(); // auto-previews never become the repeat target
     }, 150);
   }
-  const ov = loadOv('vfx');
   for (const group of WORKSHOP_KNOBS) {
     body.appendChild(el('h3', null, group.title));
     for (const knob of group.rows) {
-      sliderRow(body, ctx, ov, knob, () => {
+      sliderRow(body, ctx, knob, () => {
         ctx.ui.applyTapVars();
         autoPreview(group.preview);
       });
@@ -555,14 +498,6 @@ function tabWorkshop(body, ctx) {
 // One mini-tab per stash tier: scrub the count within the tier, tune the
 // tier's shapes, watch the banner underneath. Preview never touches state.
 
-const HOARD_SHARED_KNOBS = [
-  { path: ['hoard', 'alpha'], min: 0, max: 1, step: 0.01 },
-  { path: ['hoard', 'glintPerS'], min: 0, max: 10, step: 0.1 },
-  { path: ['hoard', 'centerGapPx'], min: 40, max: 160, step: 2 },
-  { path: ['hoard', 'stageScale'], min: 0.5, max: 5, step: 0.1 },
-  { path: ['hoard', 'stageAlpha'], min: 0, max: 1, step: 0.01 },
-];
-
 // fmt()'s largest unit is q (1e15), so counts at or beyond 1e18 would render
 // as a run-on digit string (e.g. '1000000q'). Scrub-only: switch to a
 // log10 readout at that point; the '∞'/'live' button texts are unaffected.
@@ -629,14 +564,13 @@ function tabHoard(body, ctx) {
     detail.appendChild(row);
 
     // tier knobs + shared knobs
-    const ov = loadOv('vfx');
     detail.appendChild(el('h3', null, 'this tier'));
-    sliderRow(detail, ctx, ov,
+    sliderRow(detail, ctx,
       { path: ['hoard', 'tiers', i, 'units'], min: 1, max: 14, step: 1 }, redraw);
-    sliderRow(detail, ctx, ov,
+    sliderRow(detail, ctx,
       { path: ['hoard', 'tiers', i, 'px'], min: 8, max: 120, step: 1 }, redraw);
     detail.appendChild(el('h3', null, 'whole hoard'));
-    for (const knob of HOARD_SHARED_KNOBS) sliderRow(detail, ctx, ov, knob, redraw);
+    for (const knob of HOARD_SHARED_KNOBS) sliderRow(detail, ctx, knob, redraw);
   }
 
   tiers.forEach((t, i) => {

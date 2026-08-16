@@ -81,6 +81,15 @@ The Pacing tab runs the real engine headless with a competent-not-optimal
 bot and reports act timing, reveal cadence, wakes, and beat reachability —
 the same numbers the test suite asserts.
 
+## Dev Suite artifact
+
+`node scripts/build-artifact.js` bundles the whole game + dev suite into
+`dist/dev-suite.html`, a self-contained Claude Artifact page: dev panel on
+the left, a live copy of the game on the right (game hotkeys off; `[`/`]`
+and Shift+1..8 drive the dev tabs), and a floating chat agent (`` ` ``) that
+explains settings, applies natural-language tuning, and packages code
+requests for local Claude Code. Process: `docs/dev-suite/SDLC.md`.
+
 ## Design notes
 
 The design spec lives at `docs/superpowers/specs/2026-08-13-tooth-fairy-design.md`.
