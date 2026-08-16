@@ -257,10 +257,12 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') ui.overlays.closeAll();
     return;
   }
-  // A story response requires a real click: while a beat card is up, SPACE
-  // and Enter are swallowed so they can neither dismiss it nor tap through.
+  // A story response requires deliberate input: while a beat card is up,
+  // the global SPACE/Enter shortcuts are swallowed so they can neither
+  // dismiss it nor tap through. Native activation of the focused response
+  // button stays — keyboard players respond by tabbing to it.
   if (document.querySelector('.beatCard.show') && (e.key === ' ' || e.key === 'Enter')) {
-    e.preventDefault();
+    if (!(t && t.closest && t.closest('[data-testid="beat-response"]'))) e.preventDefault();
     return;
   }
   switch (e.key) {
