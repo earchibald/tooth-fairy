@@ -125,6 +125,10 @@ const CSS = `
 .devPanel--drawer { inset: 0 0 45% 0; border-bottom: 1px solid #ffffff22; }
 .devRow input[type="range"] { flex: 1; min-width: 160px; max-width: 320px; }
 .devRow .val { color: #cfa8ea; min-width: 56px; font-size: 12px; text-align: right; }
+.devBar.devSticky { position: sticky; top: -14px; z-index: 5; background: #171b27;
+  padding: 10px 0 8px; margin: -14px 0 8px; box-shadow: 0 6px 8px -6px #000a; }
+.devRepeat { display: inline-flex; align-items: center; gap: 5px; color: #d7dceb;
+  font-size: 12px; user-select: none; }
 `;
 
 export function mountDevPanel(ctx) {
@@ -310,37 +314,37 @@ function ovBar(body, ctx, note) {
 // without playing, then save the liked values into the repo and release.
 
 const WORKSHOP_KNOBS = [
-  { title: 'tap pop', rows: [
+  { title: 'tap pop', preview: 'tap', rows: [
     { path: ['juice', 'tapPop', 'scale'], min: 0.9, max: 1.8, step: 0.01 },
     { path: ['juice', 'tapPop', 'ms'], min: 40, max: 500, step: 5 },
   ] },
-  { title: 'tap glow', rows: [
+  { title: 'tap glow', preview: 'tap', rows: [
     { path: ['juice', 'tapGlow', 'size'], min: 0, max: 60, step: 1 },
     { path: ['juice', 'tapGlow', 'alpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'tapGlow', 'ms'], min: 60, max: 1200, step: 10 },
   ] },
-  { title: 'tap sparks', rows: [
+  { title: 'tap sparks', preview: 'tap', rows: [
     { path: ['juice', 'tapSparks', 'count'], min: 0, max: 40, step: 1 },
     { path: ['juice', 'tapSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
     { path: ['juice', 'tapSparks', 'spreadPx'], min: 6, max: 120, step: 2 },
     { path: ['juice', 'tapSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
   ] },
-  { title: 'incoming teeth', rows: [
+  { title: 'incoming teeth', preview: 'flowShort', rows: [
     { path: ['juice', 'inbound', 'glowSize'], min: 0, max: 40, step: 1 },
     { path: ['juice', 'inbound', 'glowAlpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'inbound', 'trailPerS'], min: 0, max: 60, step: 1 },
     { path: ['juice', 'inbound', 'trailLife'], min: 100, max: 2000, step: 20 },
   ] },
-  { title: 'landing', rows: [
+  { title: 'landing', preview: 'flowShort', rows: [
     { path: ['juice', 'landSparks', 'count'], min: 0, max: 40, step: 1 },
     { path: ['juice', 'landSparks', 'size'], min: 0.5, max: 8, step: 0.1 },
     { path: ['juice', 'landSparks', 'lifeMs'], min: 100, max: 2000, step: 20 },
   ] },
-  { title: 'powerup sweep', rows: [
+  { title: 'powerup sweep', preview: 'buy', rows: [
     { path: ['juice', 'buySweep', 'alpha'], min: 0, max: 1, step: 0.01 },
     { path: ['juice', 'buySweep', 'ms'], min: 200, max: 2500, step: 50 },
   ] },
-  { title: 'scale ramp', rows: [
+  { title: 'scale ramp', preview: 'flowShort', rows: [
     { path: ['juice', 'ramp', 'rateLo'], min: 1, max: 10000, step: 1 },
     { path: ['juice', 'ramp', 'rateHi'], min: 1e6, max: 1e12, step: 1e6 },
     { path: ['juice', 'ramp', 'sizeHi'], min: 1, max: 4, step: 0.05 },
@@ -387,40 +391,106 @@ function tabWorkshop(body, ctx) {
     'the juice studio. sliders apply live and persist like every dev override. ' +
     'preview fires the real feedback paths; the game stays visible below.'));
 
-  // ---- preview bar ----
-  const preview = el('div', 'devBar');
+  // ---- preview bar (sticky; hotkeys; repeat) ----
+  const preview = el('div', 'devBar devSticky');
   const now = () => performance.now();
-  const bTap = el('button', null, 'tap');
-  bTap.addEventListener('click', () => {
-    ctx.ui.pressTap();
-    ctx.ui.flashTapGlow();
-    ctx.ui.conveyor.tapPulse(now());
-  });
-  const bBuy = el('button', null, 'powerup');
-  bBuy.addEventListener('click', () => ctx.ui.conveyor.buySweep(now()));
-  preview.append(bTap, bBuy);
   let flowTimer = null;
-  for (const [label, rate] of [['flow: trickle', 1e2], ['flow: busy', 1e6], ['flow: storm', 1e12]]) {
-    const b = el('button', null, label);
-    b.addEventListener('click', () => {
-      clearInterval(flowTimer);
-      ctx.ui.conveyor.setRate(rate);
-      const until = now() + 5000;
-      flowTimer = setInterval(() => {
-        if (now() > until) { clearInterval(flowTimer); return; }
-        ctx.ui.conveyor.creditPreview(rate * 0.2, now());
-      }, 200);
-    });
+  let seqTimers = [];
+  let autoTimer = null;
+  let repeatTimer = null;
+  let lastAction = null;
+
+  function flow(rate, ms) {
+    clearInterval(flowTimer);
+    ctx.ui.conveyor.setRate(rate);
+    const until = now() + ms;
+    flowTimer = setInterval(() => {
+      if (now() > until) { clearInterval(flowTimer); return; }
+      ctx.ui.conveyor.creditPreview(rate * 0.2, now());
+    }, 200);
+  }
+
+  // ms is the effect's full duration — the repeat loop refires after it.
+  const ACTIONS = {
+    tap: { label: 'tap', key: '1', ms: 700,
+      run: () => { ctx.ui.pressTap(); ctx.ui.flashTapGlow(); ctx.ui.conveyor.tapPulse(now()); } },
+    buy: { label: 'powerup', key: '2', ms: 1200,
+      run: () => ctx.ui.conveyor.buySweep(now()) },
+    trickle: { label: 'flow: trickle', key: '3', ms: 5000, run: () => flow(1e2, 5000) },
+    busy: { label: 'flow: busy', key: '4', ms: 5000, run: () => flow(1e6, 5000) },
+    storm: { label: 'flow: storm', key: '5', ms: 5000, run: () => flow(1e12, 5000) },
+    seq: { label: 'all in sequence', key: 'a', ms: 8200, run: () => {
+      seqTimers.forEach(clearTimeout);
+      seqTimers = [];
+      ACTIONS.tap.run();
+      seqTimers.push(setTimeout(() => ACTIONS.buy.run(), 700));
+      seqTimers.push(setTimeout(() => flow(1e2, 1800), 2000));
+      seqTimers.push(setTimeout(() => flow(1e6, 1800), 4000));
+      seqTimers.push(setTimeout(() => flow(1e12, 1800), 6000));
+    } },
+  };
+
+  function armRepeat() {
+    clearTimeout(repeatTimer);
+    repeatTimer = null;
+    if (!rep.checked || !lastAction) return;
+    repeatTimer = setTimeout(() => {
+      if (rep.checked && lastAction) { ACTIONS[lastAction].run(); armRepeat(); }
+    }, ACTIONS[lastAction].ms + 300);
+  }
+
+  function press(key) {
+    lastAction = key;
+    ACTIONS[key].run();
+    armRepeat();
+  }
+
+  for (const key of Object.keys(ACTIONS)) {
+    const a = ACTIONS[key];
+    const b = el('button', null, a.label + ' [' + a.key.toUpperCase() + ']');
+    b.addEventListener('click', () => press(key));
     preview.appendChild(b);
   }
+  const repLabel = el('label', 'devRepeat');
+  const rep = document.createElement('input');
+  rep.type = 'checkbox';
+  repLabel.append(rep, document.createTextNode(' repeat [R]'));
+  rep.addEventListener('change', armRepeat);
+  preview.appendChild(repLabel);
   body.append(el('h3', null, 'preview'), preview);
 
-  // ---- sliders ----
+  // Hotkeys live while this tab is visible; typing fields keep their keys.
+  function onKey(e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'r') {
+      rep.checked = !rep.checked;
+      armRepeat();
+      e.preventDefault();
+      return;
+    }
+    const key = Object.keys(ACTIONS).find((x) => ACTIONS[x].key === k);
+    if (key) { press(key); e.preventDefault(); }
+  }
+  document.addEventListener('keydown', onKey);
+
+  // ---- sliders (each fires its group's preview on change, debounced) ----
+  function autoPreview(key) {
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+      if (key === 'flowShort') flow(1e6, 1500);
+      else ACTIONS[key].run(); // auto-previews never become the repeat target
+    }, 150);
+  }
   const ov = loadOv('vfx');
   for (const group of WORKSHOP_KNOBS) {
     body.appendChild(el('h3', null, group.title));
     for (const knob of group.rows) {
-      sliderRow(body, ctx, ov, knob, () => ctx.ui.applyTapVars());
+      sliderRow(body, ctx, ov, knob, () => {
+        ctx.ui.applyTapVars();
+        autoPreview(group.preview);
+      });
     }
   }
 
@@ -472,6 +542,10 @@ function tabWorkshop(body, ctx) {
 
   return () => {
     clearInterval(flowTimer);
+    seqTimers.forEach(clearTimeout);
+    clearTimeout(autoTimer);
+    clearTimeout(repeatTimer);
+    document.removeEventListener('keydown', onKey);
     ctx.ui.conveyor.setRate(0);
     ctx.ui.conveyor.flush();
   };
