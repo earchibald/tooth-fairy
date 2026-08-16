@@ -87,7 +87,8 @@ export function transcribeFile(input, { outDir, model = DEFAULT_MODEL } = {}, de
   if (backend === 'mlx') {
     runner('mlx_whisper', mlxWhisperArgs(wavPath, outDir, baseName, model));
   } else {
-    runner('whisper-cli', whisperCliArgs(wavPath, outDir, baseName));
+    const cppModel = model === DEFAULT_MODEL ? DEFAULT_WHISPER_CPP_MODEL : model;
+    runner('whisper-cli', whisperCliArgs(wavPath, outDir, baseName, cppModel));
   }
 
   return { input, backend, outDir, baseName, jsonPath: join(outDir, `${baseName}.json`) };

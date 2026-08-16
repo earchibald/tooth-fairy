@@ -77,6 +77,34 @@ test('transcribeFile falls back to whisper-cli when mlx_whisper is not installed
   assert.equal(result.backend, 'cpp');
 });
 
+test('transcribeFile passes DEFAULT_WHISPER_CPP_MODEL to whisperCliArgs when --model was not overridden', () => {
+  const calls = [];
+  const runner = (cmd, args) => { calls.push([cmd, args]); return ''; };
+  const which = (cmd) => cmd === 'whisper-cli';
+  transcribeFile('tf-session-1-v3.webm', { outDir: 'out' }, {
+    which, runner, tmpWav: () => '/tmp/fixed3.wav',
+  });
+  assert.deepEqual(
+    calls[1][1],
+    whisperCliArgs('/tmp/fixed3.wav', 'out', 'tf-session-1-v3', DEFAULT_WHISPER_CPP_MODEL),
+  );
+});
+
+test("transcribeFile maps an explicit --model override onto whisper-cli's -m flag", () => {
+  const calls = [];
+  const runner = (cmd, args) => { calls.push([cmd, args]); return ''; };
+  const which = (cmd) => cmd === 'whisper-cli';
+  transcribeFile('tf-session-1-v4.webm', { outDir: 'out', model: 'some/other-model' }, {
+    which, runner, tmpWav: () => '/tmp/fixed4.wav',
+  });
+  assert.deepEqual(
+    calls[1][1],
+    whisperCliArgs('/tmp/fixed4.wav', 'out', 'tf-session-1-v4', 'some/other-model'),
+  );
+  const mIndex = calls[1][1].indexOf('-m');
+  assert.equal(calls[1][1][mIndex + 1], 'some/other-model');
+});
+
 test('transcribeFile throws naming both install commands when neither backend is installed', () => {
   assert.throws(
     () => transcribeFile('a.m4a', { outDir: 'out' }, { which: () => false, runner: () => '' }),
