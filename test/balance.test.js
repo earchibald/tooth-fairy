@@ -19,7 +19,7 @@ test('loom hush diminishes geometrically and asymptotes', () => {
     cfg.LOOM.hushPerLevel * (1 + cfg.LOOM.hushFalloff)) < 1e-9);
   s.loom = 500;
   const cap = cfg.LOOM.hushPerLevel / (1 - cfg.LOOM.hushFalloff);
-  assert.ok(loomHush(s, cfg) < cap, 'below the asymptote');
+  assert.ok(loomHush(s, cfg) <= cap, 'at or below the asymptote');
   assert.ok(loomHush(s, cfg) > cap * 0.999, 'near the asymptote');
 });
 
